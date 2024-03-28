@@ -1,11 +1,15 @@
 from sanic import Sanic, empty
+
+from middle.rabbitmq_config import rabbitmq_connection
 from middle.redis_config import redis_client
 from utils import redis_util
-
+from api.account import account_api
 app = Sanic("ak_share")
 
 app.ctx.redis_client = redis_client
+app.ctx.rabbitmq_connection = rabbitmq_connection
 
+app.blueprint(account_api)
 
 @app.main_process_start
 async def main_process_start(app, loop):
@@ -15,6 +19,7 @@ async def main_process_start(app, loop):
 @app.main_process_stop
 async def main_process_stop(app, loop):
     redis_client = app.ctx.redis_client
+    rabbitmq_connection = app.ctx.rabbitmq_connection
     if redis_client is not None:
         try:
             # 可能引发异常的代码块
@@ -22,11 +27,18 @@ async def main_process_stop(app, loop):
         except Exception as e:
             # 处理异常的代码块
             print("捕获到零除异常:", e)
+    if rabbitmq_connection is not None:
+        try:
+            # 可能引发异常的代码块
+            rabbitmq_connection.close()
+        except Exception as e:
+            # 处理异常的代码块
+            print("捕获到零除异常:", e)
 
 
 @app.route("/", methods=["GET"])
 async def index(request):
-    redis_util.set_vale(request.app.redis_client, 'key', 'value')
+    redis_util.set_vale(request.app.ctx.redis_client, 'key', 'value')
     return empty(status=200)
 
 
