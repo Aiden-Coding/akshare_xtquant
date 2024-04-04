@@ -1,15 +1,20 @@
+# -*- coding:utf-8 -*-
 from sanic import Sanic, empty
 
 from middle.rabbitmq_config import rabbitmq_connection
 from middle.redis_config import redis_client
 from utils import redis_util
 from api.account import account_api
+from api.akshare import akshare_api
+
 app = Sanic("ak_share")
 
 app.ctx.redis_client = redis_client
 app.ctx.rabbitmq_connection = rabbitmq_connection
 
 app.blueprint(account_api)
+app.blueprint(akshare_api)
+
 
 @app.main_process_start
 async def main_process_start(app, loop):
