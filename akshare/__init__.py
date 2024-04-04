@@ -5170,3 +5170,16 @@ try:
     from akqmt import xt_api
 except ImportError as e:
     pass
+
+
+def call_function(func_name, argsdict):
+    import json
+    # args = json.dumps(argsdict,ensure_ascii=False)
+    args = argsdict
+    func = globals()[func_name]
+    return func(**args)
+
+
+def call_function_no_args(func_name):
+    func = globals()[func_name]
+    return func()
