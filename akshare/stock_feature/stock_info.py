@@ -10,6 +10,7 @@ from datetime import datetime
 
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 
 
 def stock_info_cjzc_em() -> pd.DataFrame:
@@ -248,6 +249,48 @@ def stock_info_global_cls(symbol: str = "全部") -> pd.DataFrame:
         return big_df
 
 
+def stock_info_broker_sina(page: str = "1") -> pd.DataFrame:
+    """
+    新浪财经-证券-证券原创
+    https://finance.sina.com.cn/roll/index.d.html?cid=221431
+    :param page: 页面号
+    :type page: str
+    :return: 证券原创文章
+    :rtype: pandas.DataFrame
+    """
+    url = "https://finance.sina.com.cn/roll/index.d.html?cid=221431"
+    params = {"page": page}
+    r = requests.get(url, params=params)
+    r.encoding = "utf-8"
+    data_text = r.text
+    soup = BeautifulSoup(data_text, features="lxml")
+    data = []
+    from datetime import datetime
+
+    current_year = datetime.now().year
+    for ul_index in range(0, 11):
+        for li_index in range(0, 6):
+            a_selector = f"#Main > div:nth-of-type(3) > ul:nth-of-type({ul_index}) > li:nth-of-type({li_index}) > a"
+            span_selector = f"#Main > div:nth-of-type(3) > ul:nth-of-type({ul_index}) > li:nth-of-type({li_index}) > span"
+            # 获取<a>标签和<span>标签内的文本内容
+            a_element = soup.select_one(a_selector)
+            span_element = soup.select_one(span_selector)
+            if a_element and span_element:
+                href = a_element.get("href")
+                target = a_element.get("target")
+                date = str(current_year) + "年" + span_element.text[1:-1]
+                text = a_element.text
+                data.append(
+                    {"href": href, "target": target, "date": date, "text": text}
+                )
+
+    temp_df = pd.DataFrame(data)
+    temp_df = temp_df[["date", "text", "href"]]
+    temp_df.columns = ["时间", "内容", "链接"]
+    temp_df.sort_values(["时间"], ignore_index=True, inplace=True)
+    return temp_df
+
+
 if __name__ == "__main__":
     stock_info_cjzc_em_df = stock_info_cjzc_em()
     print(stock_info_cjzc_em_df)
@@ -266,3 +309,6 @@ if __name__ == "__main__":
 
     stock_info_global_cls_df = stock_info_global_cls(symbol="全部")
     print(stock_info_global_cls_df)
+
+    stock_info_broker_sina_df = stock_info_broker_sina(page="1")
+    print(stock_info_broker_sina_df)

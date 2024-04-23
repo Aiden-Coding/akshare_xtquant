@@ -20,8 +20,9 @@ Welcome to AKShare's Online Documentation!
    :caption: Table of contents:
 
    introduction
+   learn
    installation
-   contributor
+   contributing
    answer
    tutorial
    articles

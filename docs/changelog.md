@@ -4,6 +4,9 @@
 
 | AKShare 版本 | 旧接口名称                                       | 新接口名称                                       | 修改日期     |
 |------------|---------------------------------------------|---------------------------------------------|----------|
+| 1.13.19    | car_gasgoo_sale_rank                        | car_sale_rank_gasgoo                        | 20240403 |
+| 1.13.19    | car_energy_sale_cpca                        | car_market_fuel_cpca                        | 20240403 |
+| 1.13.15    | car_market_cpca                             | car_market_total_cpca                       | 20240331 |
 | 1.12.95    | futures_hog_rank                            | futures_hog_cost                            | 20240318 |
 | 1.12.95    | futures_hog_info                            | futures_hog_core                            | 20240318 |
 | 1.12.93    | get_bond_bank                               | bond_debt_nafmii                            | 20240316 |
@@ -74,6 +77,171 @@
 | 1.4.86     | fund_em_aum                                 | fund_aum_em                                 | 20220322 |
 
 ## 更新说明详情
+
+1.13.44 fix: fix stock_lhb_stock_statistic_em interface
+
+    1. 修复 stock_lhb_stock_statistic_em 接口
+    2. 修复 spot_hist_sge 接口
+
+1.13.43 fix: fix stock_account_statistics_em interface
+
+    1. 修复 stock_account_statistics_em 接口
+    2. 修复 stock_sy_profile_em 接口
+
+1.13.42 fix: fix index_fear_greed_funddb interface
+
+    1. 修复 index_fear_greed_funddb 接口
+
+1.13.41 fix: fix stock_sy_hy_em interface
+
+    1. 修复 stock_sy_hy_em 接口
+
+1.13.40 fix: fix index_fear_greed_funddb interface
+
+    1. 修复 index_fear_greed_funddb 接口
+
+1.13.39 add: add index_news_sentiment_scope interface
+
+    1. 新增 index_news_sentiment_scope 接口
+    2. 修复 index_yw 接口
+
+1.13.38 fix: fix stock_market_activity_legu interface
+
+    1. 修复 stock_market_activity_legu 接口
+    2. 修复 get_shfe_daily 接口
+    3. 修复 get_czce_daily 接口
+
+1.13.37 fix: fix stock_hk_index_daily_sina interface
+
+    1. 修复 stock_hk_index_daily_sina 接口
+    2. 新增 stock_info_broker_sina 接口
+
+1.13.36 fix: fix stock_hsgt_hist_em interface
+
+    1. 修复 stock_hsgt_hist_em 接口
+
+1.13.35 fix: fix stock_margin_szse interface
+
+    1. 修复 stock_margin_szse 接口
+
+1.13.34 fix: fix bank_fjcf_table_detail interface
+
+    1. 修复 bank_fjcf_table_detail 接口
+
+1.13.33 fix: fix index_realtime_fund_sw interface
+
+    1. 修复 index_realtime_fund_sw 接口
+    2. 修复 stock_zt_pool_em 接口
+
+1.13.32 fix: fix futures_contract_info_czce interface
+
+    1. 修复 futures_contract_info_czce 接口
+    2. 修复 stock_board_concept_cons_em 接口
+    3. 修复 futures_comm_info 接口
+    4. 修复 stock_us_pink_spot_em 接口
+
+1.13.31 fix: fix stock_individual_spot_xq interface
+
+    1. 修复 stock_individual_spot_xq 接口
+
+1.13.30 fix: fix futures_contract_info_shfe interface
+
+    1. 修复 futures_contract_info_shfe 接口
+
+1.13.29 fix: fix stock_esg_msci_sina interface
+
+    1. 修复 stock_esg_msci_sina 接口
+
+1.13.28 fix: fix stock_restricted_release_queue_em interface
+
+    1. 修复 stock_restricted_release_queue_em 接口
+    2. 修复 stock_esg_msci_sina 接口
+
+1.13.27 add: add stock_esg_msci_sina interface
+
+    1. 新增 stock_esg_msci_sina 接口
+    2. 新增 stock_esg_rft_sina 接口
+    3. 新增 stock_esg_zd_sina 接口
+
+1.13.26 fix: fix option_sse_minute_sina interface
+
+    1. 修复 option_sse_minute_sina 接口
+
+1.13.25 fix: fix futures_zh_daily_sina interface
+
+    1. 修复 futures_zh_daily_sina 接口
+
+1.13.24 fix: fix futures_spot_sys interface
+
+    1. 修复 futures_spot_sys 接口
+
+1.13.23 add: add macro_usa_cme_merchant_goods_holding interface
+
+    1. 新增 macro_usa_cme_merchant_goods_holding 接口
+
+1.13.22 fix: fix amac_manager_cancelled_info interface
+
+    1. 修复 amac_manager_cancelled_info 接口
+    2. 修复 macro_china_pmi_yearly 接口
+    3. 修复 macro_euro_lme_stock 接口
+    4. 修复 macro_usa_phs 接口
+    5. 修复 macro_china_construction_index 接口
+
+1.13.21 fix: fix stock_yjkb_em interface
+
+    1. 修复 stock_yjkb_em 接口
+    2. 修复 stock_pg_em 接口
+    3. 修复 stock_comment_em 接口
+    4. 修复 macro_usa_api_crude_stock 接口
+
+1.13.20 fix: fix stock_zh_a_disclosure_report_cninfo interface
+
+    1. 修复 stock_zh_a_disclosure_report_cninfo 接口
+
+1.13.19 add: add car_market_country_cpca interface
+
+    1. 新增 car_market_country_cpca 接口
+    2. 新增 car_market_segment_cpca 接口
+
+1.13.18 fix: fix macro_china_pmi_yearly interface
+
+    1. 修复 crypto_js_spot 接口
+    2. 修复 macro_cons_gold 接口
+    3. 修复 macro_china_hk_cpi 接口
+    4. 修复 macro_china_pmi_yearly 接口
+    5. 新增 index_realtime_fund_sw 接口
+    6. 新增 index_hist_fund_sw 接口
+    7. 修复 macro_euro_lme_stock 接口
+    8. 修复 macro_usa_cftc_merchant_goods_holding 接口
+    9. 修复 macro_usa_ism_pmi 接口
+
+1.13.17 fix: fix stock_zcfz_em interface
+
+    1. 修复 stock_zcfz_em 接口
+    2. 新增 fund_individual_detail_hold_xq 接口
+    3. 修复 futures_dce_warehouse_receipt 接口
+
+1.13.16 add: add car_market_cate_cpca interface
+
+    1. 新增 car_market_cate_cpca 接口
+    2. 修复 car_market_man_rank_cpca 接口
+
+1.13.15 add: add car_market_man_rank_cpca interface
+
+    1. 新增 car_market_man_rank_cpca 接口
+    2. 修复 car_market_total_cpca 接口
+
+1.13.14 fix: fix futures_fees_info interface
+
+    1. 修复 futures_fees_info 接口
+
+1.13.13 fix: fix car_market_cpca interface
+
+    1. 修复 car_market_cpca 接口
+
+1.13.12 fix: fix stock_zyjs_ths interface
+
+    1. 修复 stock_zyjs_ths 接口
 
 1.13.11 fix: fix option_minute_em interface
 
@@ -3793,6 +3961,72 @@
     3. 修改 air_quality_hist 接口的请求日期格式，从 '2022-01-01' 为 '20220101'
 
 ## 版本更新说明
+
+1.13.44 fix: fix stock_lhb_stock_statistic_em interface
+
+1.13.43 fix: fix stock_account_statistics_em interface
+
+1.13.42 fix: fix index_fear_greed_funddb interface
+
+1.13.41 fix: fix stock_sy_hy_em interface
+
+1.13.40 fix: fix index_fear_greed_funddb interface
+
+1.13.39 add: add index_news_sentiment_scope interface
+
+1.13.38 fix: fix stock_market_activity_legu interface
+
+1.13.37 fix: fix stock_hk_index_daily_sina interface
+
+1.13.36 fix: fix stock_hsgt_hist_em interface
+
+1.13.35 fix: fix stock_margin_szse interface
+
+1.13.34 fix: fix bank_fjcf_table_detail interface
+
+1.13.33 fix: fix index_realtime_fund_sw interface
+
+1.13.32 fix: fix futures_contract_info_czce interface
+
+1.13.31 fix: fix stock_individual_spot_xq interface
+
+1.13.30 fix: fix futures_contract_info_shfe interface
+
+1.13.29 fix: fix stock_esg_msci_sina interface
+
+1.13.28 fix: fix stock_restricted_release_queue_em interface
+
+1.13.27 add: add stock_esg_msci_sina interface
+
+1.13.26 fix: fix option_sse_minute_sina interface
+
+1.13.25 fix: fix futures_zh_daily_sina interface
+
+1.13.24 fix: fix futures_spot_sys interface
+
+1.13.23 add: add macro_usa_cme_merchant_goods_holding interface
+
+1.13.22 fix: fix amac_manager_cancelled_info interface
+
+1.13.21 fix: fix stock_yjkb_em interface
+
+1.13.20 fix: fix stock_zh_a_disclosure_report_cninfo interface
+
+1.13.19 add: add car_market_country_cpca interface
+
+1.13.18 fix: fix macro_china_pmi_yearly interface
+
+1.13.17 fix: fix stock_zcfz_em interface
+
+1.13.16 add: add car_market_cate_cpca interface
+
+1.13.15 add: add car_market_man_rank_cpca interface
+
+1.13.14 fix: fix futures_fees_info interface
+
+1.13.13 fix: fix car_market_cpca interface
+
+1.13.12 fix: fix stock_zyjs_ths interface
 
 1.13.11 fix: fix option_minute_em interface
 

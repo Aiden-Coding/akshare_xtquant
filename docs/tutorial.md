@@ -411,12 +411,6 @@
  "stock_comment_detail_scrd_cost_em"  # 市场热度-市场成本
  # 沪深港通
  "stock_hk_ggt_components_em"  # 港股通成份股
- "stock_hsgt_north_net_flow_in_em"  # 沪深港通北向-净流入
- "stock_hsgt_north_cash_em"  # 沪深港通北向-资金余额
- "stock_hsgt_north_acc_flow_in_em"  # 沪深港通北向-累计净流入
- "stock_hsgt_south_net_flow_in_em"  # 沪深港通南向-净流入
- "stock_hsgt_south_cash_em"  # 沪深港通南向-资金余额
- "stock_hsgt_south_acc_flow_in_em"  # 沪深港通南向-累计净流入
  "stock_hsgt_hold_stock_em"  # 沪深港通持股-个股排行
  "stock_hsgt_stock_statistics_em"  # 沪深港通持股-每日个股统计
  "stock_hsgt_institution_statistics_em"  # 沪深港通持股-每日机构统计
@@ -710,12 +704,17 @@
  # 中国公路物流运量指数
  "index_cflp_volume"  # 中国公路物流运量指数
  # 汽车销量
- "car_gasgoo_sale_rank"  # 盖世汽车-汽车行业制造企业数据库-销量数据
- "car_energy_sale_cpca"  # 乘联会-新能源细分市场-整体市场
+ "car_sale_rank_gasgoo"  # 盖世汽车-汽车行业制造企业数据库-销量数据
+ "car_market_total_cpca"  # 乘联会-统计数据-总体市场
+ "car_market_man_rank_cpca"  # 乘联会-统计数据-厂商排名
+ "car_market_cate_cpca"  # 乘联会-统计数据-车型大类
+ "car_market_country_cpca"  # 乘联会-统计数据-国别细分市场
+ "car_market_segment_cpca"  # 乘联会-统计数据-级别细分市场
+ "car_market_fuel_cpca"  # 乘联会-统计数据-新能源细分市场
  # 增发
- "stock_em_qbzf"  # 增发
+ "stock_qbzf_em"  # 增发
  # 配股
- "stock_em_pg"  # 配股
+ "stock_pg_em"  # 配股
  # 中国-香港-宏观经济指标
  "macro_china_hk_cpi"  # 中国-香港-消费者物价指数
  "macro_china_hk_cpi_ratio"  # 中国-香港-消费者物价指数年率
@@ -1141,6 +1140,8 @@
  "index_analysis_weekly_sw"  # 申万宏源研究-指数分析-周报表
  "index_analysis_monthly_sw"  # 申万宏源研究-指数分析-月报表
  "index_analysis_week_month_sw"  # 申万宏源研究-指数分析-周/月-日期序列
+ "index_realtime_fund_sw"  # 申万宏源研究-申万指数-指数发布-基金指数-实时行情
+ "index_hist_fund_sw"  # 申万宏源研究-申万指数-指数发布-基金指数-历史行情
  # 债券-信息查询结果
  "bond_info_cm"  # 中国外汇交易中心暨全国银行间同业拆借中心-债券-信息查询结果
  "bond_info_detail_cm"  # 中国外汇交易中心暨全国银行间同业拆借中心-债券-债券详情
@@ -1175,7 +1176,10 @@
  "fund_lof_spot_em"  # 东方财富-LOF 实时行情
  "fund_lof_hist_min_em"  # 东方财富-LOF 分时行情
  # 新浪财经-ESG评级中心
+ "stock_esg_msci_sina"  # 新浪财经-ESG评级中心-ESG评级-MSCI
+ "stock_esg_rft_sina"  # 新浪财经-ESG评级中心-ESG评级-路孚特
  "stock_esg_rate_sina"  # 新浪财经-ESG评级中心-ESG评级-ESG评级数据
+ "stock_esg_zd_sina"  # 新浪财经-ESG评级中心-ESG评级-秩鼎
  "stock_esg_hz_sina"  # 新浪财经-ESG评级中心-ESG评级-华证指数
  # 基金公告
  "fund_announcement_personnel_em"  # 东方财富网站-天天基金网-基金档案-基金公告-人事调整
@@ -1224,7 +1228,8 @@
  "fund_individual_achievement_xq"  # 雪球基金-基金业绩
  "fund_individual_analysis_xq"  # 雪球基金-基金数据分析
  "fund_individual_profit_probability_xq"  # 雪球基金-盈利概率
- "fund_individual_detail_info_xq"  # 雪球基金-详细信息
+ "fund_individual_detail_info_xq"  # 雪球基金-交易规则
+ "fund_individual_detail_hold_xq"  # 雪球基金-持仓详情
  # 港股盈利预测
  "stock_hk_profit_forecast_et"  # 港股盈利预测
  # 雪球-行情中心-个股
@@ -1253,6 +1258,9 @@
  "stock_info_global_futu"  # 资讯数据-富途牛牛
  "stock_info_global_ths"  # 资讯数据-同花顺
  "stock_info_global_cls"  # 资讯数据-财联社
+ "stock_info_broker_sina"  # 新浪财经-证券-证券原创
+ # 数库-A股新闻情绪指数
+ "index_news_sentiment_scope"  # 数库-A股新闻情绪指数
 ```
 
 ## 案例演示

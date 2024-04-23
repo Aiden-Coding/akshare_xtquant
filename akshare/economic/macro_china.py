@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 """
-Date: 2024/3/4 14:30
+Date: 2024/4/3 15:20
 Desc: 宏观数据-中国
 """
+
+import datetime
 import json
 import math
 import time
@@ -13,19 +15,71 @@ import requests
 from tqdm import tqdm
 
 from akshare.economic.cons import (
-    JS_CHINA_CPI_YEARLY_URL,
-    JS_CHINA_CPI_MONTHLY_URL,
-    JS_CHINA_M2_YEARLY_URL,
-    JS_CHINA_PPI_YEARLY_URL,
-    JS_CHINA_PMI_YEARLY_URL,
-    JS_CHINA_GDP_YEARLY_URL,
-    JS_CHINA_CX_PMI_YEARLY_URL,
-    JS_CHINA_FX_RESERVES_YEARLY_URL,
     JS_CHINA_ENERGY_DAILY_URL,
-    JS_CHINA_NON_MAN_PMI_MONTHLY_URL,
-    JS_CHINA_CX_SERVICE_PMI_YEARLY_URL,
 )
 from akshare.utils import demjson
+
+
+def __macro_china_base_func(symbol: str, params: dict) -> pd.DataFrame:
+    """
+    金十数据中心-经济指标-美国-基础函数
+    https://datacenter.jin10.com/economic
+    :return: 美国经济指标数据
+    :rtype: pandas.DataFrame
+    """
+    import warnings
+
+    warnings.filterwarnings(action="ignore", category=FutureWarning)
+    headers = {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/107.0.0.0 Safari/537.36",
+        "x-app-id": "rU6QIu7JHe2gOUeR",
+        "x-csrf-token": "x-csrf-token",
+        "x-version": "1.0.0",
+    }
+    url = "https://datacenter-api.jin10.com/reports/list_v2"
+    params = params
+    big_df = pd.DataFrame()
+    while True:
+        r = requests.get(url, params=params, headers=headers)
+        data_json = r.json()
+        if not data_json["data"]["values"]:
+            break
+        temp_df = pd.DataFrame(data_json["data"]["values"])
+        big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
+        last_date_str = temp_df.iat[-1, 0]
+        last_date_str = (
+            (
+                datetime.datetime.strptime(last_date_str, "%Y-%m-%d")
+                - datetime.timedelta(days=1)
+            )
+            .date()
+            .isoformat()
+        )
+        params.update({"max_date": f"{last_date_str}"})
+    big_df.columns = [
+        "日期",
+        "今值",
+        "预测值",
+        "前值",
+    ]
+    big_df["商品"] = symbol
+    big_df = big_df[
+        [
+            "商品",
+            "日期",
+            "今值",
+            "预测值",
+            "前值",
+        ]
+    ]
+    big_df["日期"] = pd.to_datetime(big_df["日期"], errors="coerce").dt.date
+    big_df["今值"] = pd.to_numeric(big_df["今值"], errors="coerce")
+    big_df["预测值"] = pd.to_numeric(big_df["预测值"], errors="coerce")
+    big_df["前值"] = pd.to_numeric(big_df["前值"], errors="coerce")
+    big_df.sort_values(["日期"], inplace=True)
+    big_df.reset_index(inplace=True, drop=True)
+    return big_df
 
 
 # 企业商品价格指数
@@ -92,17 +146,33 @@ def macro_china_qyspjg() -> pd.DataFrame:
         ]
     ]
     temp_df["总指数-指数值"] = pd.to_numeric(temp_df["总指数-指数值"], errors="coerce")
-    temp_df["总指数-同比增长"] = pd.to_numeric(temp_df["总指数-同比增长"], errors="coerce")
-    temp_df["总指数-环比增长"] = pd.to_numeric(temp_df["总指数-环比增长"], errors="coerce")
+    temp_df["总指数-同比增长"] = pd.to_numeric(
+        temp_df["总指数-同比增长"], errors="coerce"
+    )
+    temp_df["总指数-环比增长"] = pd.to_numeric(
+        temp_df["总指数-环比增长"], errors="coerce"
+    )
     temp_df["农产品-指数值"] = pd.to_numeric(temp_df["农产品-指数值"], errors="coerce")
-    temp_df["农产品-同比增长"] = pd.to_numeric(temp_df["农产品-同比增长"], errors="coerce")
-    temp_df["农产品-环比增长"] = pd.to_numeric(temp_df["农产品-环比增长"], errors="coerce")
+    temp_df["农产品-同比增长"] = pd.to_numeric(
+        temp_df["农产品-同比增长"], errors="coerce"
+    )
+    temp_df["农产品-环比增长"] = pd.to_numeric(
+        temp_df["农产品-环比增长"], errors="coerce"
+    )
     temp_df["矿产品-指数值"] = pd.to_numeric(temp_df["矿产品-指数值"], errors="coerce")
-    temp_df["矿产品-同比增长"] = pd.to_numeric(temp_df["矿产品-同比增长"], errors="coerce")
-    temp_df["矿产品-环比增长"] = pd.to_numeric(temp_df["矿产品-环比增长"], errors="coerce")
+    temp_df["矿产品-同比增长"] = pd.to_numeric(
+        temp_df["矿产品-同比增长"], errors="coerce"
+    )
+    temp_df["矿产品-环比增长"] = pd.to_numeric(
+        temp_df["矿产品-环比增长"], errors="coerce"
+    )
     temp_df["煤油电-指数值"] = pd.to_numeric(temp_df["煤油电-指数值"], errors="coerce")
-    temp_df["煤油电-同比增长"] = pd.to_numeric(temp_df["煤油电-同比增长"], errors="coerce")
-    temp_df["煤油电-环比增长"] = pd.to_numeric(temp_df["煤油电-环比增长"], errors="coerce")
+    temp_df["煤油电-同比增长"] = pd.to_numeric(
+        temp_df["煤油电-同比增长"], errors="coerce"
+    )
+    temp_df["煤油电-环比增长"] = pd.to_numeric(
+        temp_df["煤油电-环比增长"], errors="coerce"
+    )
     return temp_df
 
 
@@ -196,12 +266,20 @@ def macro_china_shrzgm() -> pd.DataFrame:
             "其中-非金融企业境内股票融资",
         ]
     ]
-    temp_df["社会融资规模增量"] = pd.to_numeric(temp_df["社会融资规模增量"], errors="coerce")
-    temp_df["其中-人民币贷款"] = pd.to_numeric(temp_df["其中-人民币贷款"], errors="coerce")
-    temp_df["其中-委托贷款外币贷款"] = pd.to_numeric(temp_df["其中-委托贷款外币贷款"], errors="coerce")
+    temp_df["社会融资规模增量"] = pd.to_numeric(
+        temp_df["社会融资规模增量"], errors="coerce"
+    )
+    temp_df["其中-人民币贷款"] = pd.to_numeric(
+        temp_df["其中-人民币贷款"], errors="coerce"
+    )
+    temp_df["其中-委托贷款外币贷款"] = pd.to_numeric(
+        temp_df["其中-委托贷款外币贷款"], errors="coerce"
+    )
     temp_df["其中-委托贷款"] = pd.to_numeric(temp_df["其中-委托贷款"], errors="coerce")
     temp_df["其中-信托贷款"] = pd.to_numeric(temp_df["其中-信托贷款"], errors="coerce")
-    temp_df["其中-未贴现银行承兑汇票"] = pd.to_numeric(temp_df["其中-未贴现银行承兑汇票"], errors="coerce")
+    temp_df["其中-未贴现银行承兑汇票"] = pd.to_numeric(
+        temp_df["其中-未贴现银行承兑汇票"], errors="coerce"
+    )
     temp_df["其中-企业债券"] = pd.to_numeric(temp_df["其中-企业债券"], errors="coerce")
     temp_df["其中-非金融企业境内股票融资"] = pd.to_numeric(
         temp_df["其中-非金融企业境内股票融资"], errors="coerce"
@@ -227,7 +305,7 @@ def macro_china_urban_unemployment() -> pd.DataFrame:
         "wds": "[]",
         "dfwds": '[{"wdcode":"zb","valuecode":"A0E01"},{"wdcode":"sj","valuecode":"LAST72"}]',
         "k1": "1691326382042",
-        'h': '1'
+        "h": "1",
     }
     r = requests.get(url, params=params, verify=False)
     r.encoding = "utf-8"
@@ -257,53 +335,13 @@ def macro_china_gdp_yearly() -> pd.DataFrame:
     :rtype: pandas.DataFrame
     """
     t = time.time()
-    r = requests.get(
-        JS_CHINA_GDP_YEARLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(r.text[r.text.find("{"): r.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国GDP年率报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(%)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "57",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.columns = ["date", "value"]
-    temp_df["date"] = pd.to_datetime(temp_df["date"]).dt.date
-    temp_df["value"] = pd.to_numeric(temp_df["value"])
+    temp_df = __macro_china_base_func(symbol="中国GDP年率报告", params=params)
     return temp_df
 
 
@@ -316,52 +354,13 @@ def macro_china_cpi_yearly() -> pd.DataFrame:
     :rtype: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_CPI_YEARLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国CPI年率报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df["date"] = pd.to_datetime(date_list)
-    temp_df = value_df[["date", "今值(%)"]]
-    temp_df.columns = ["date", "value"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "56",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.columns = ["date", "value"]
-    temp_df = pd.concat([temp_df, temp_se], ignore_index=True)
-    temp_df["date"] = pd.to_datetime(temp_df["date"]).dt.date
-    temp_df.dropna(inplace=True)
-    temp_df.sort_values(["date"], inplace=True)
-    temp_df.drop_duplicates(subset="date", inplace=True)
-    temp_df.reset_index(inplace=True, drop=True)
-    temp_df["value"] = pd.to_numeric(temp_df["value"], errors="coerce")
+    temp_df = __macro_china_base_func(symbol="中国CPI年率报告", params=params)
     return temp_df
 
 
@@ -371,58 +370,16 @@ def macro_china_cpi_monthly() -> pd.DataFrame:
     中国月度 CPI 数据, 数据区间从 19960201-至今
     https://datacenter.jin10.com/reportType/dc_chinese_cpi_mom
     :return: 中国月度 CPI 数据
-    :rtype: pandas.Series
+    :rtype: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_CPI_MONTHLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国CPI月率报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(%)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "72",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "cpi"
-    temp_df = temp_df.astype("float")
+    temp_df = __macro_china_base_func(symbol="中国CPI月率报告", params=params)
     return temp_df
 
 
@@ -431,119 +388,38 @@ def macro_china_ppi_yearly() -> pd.DataFrame:
     """
     中国年度 PPI 数据, 数据区间从 19950801-至今
     https://datacenter.jin10.com/reportType/dc_chinese_ppi_yoy
-    :return: 中国年度PPI数据
-    :rtype: pandas.Series
+    :return: 中国年度 PPI 数据
+    :rtype: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_PPI_YEARLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国PPI年率报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(%)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "60",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "ppi"
-    temp_df = temp_df.astype("float")
+    temp_df = __macro_china_base_func(symbol="中国PPI年率报告", params=params)
     return temp_df
 
 
 # 金十数据中心-经济指标-中国-贸易状况-以美元计算出口年率报告
 def macro_china_exports_yoy() -> pd.DataFrame:
     """
-    中国以美元计算出口年率报告, 数据区间从19820201-至今
+    中国以美元计算出口年率报告, 数据区间从 19820201-至今
     https://datacenter.jin10.com/reportType/dc_chinese_exports_yoy
-    https://cdn.jin10.com/dc/reports/dc_chinese_exports_yoy_all.js?v=1578754453
-    :return: 中国以美元计算出口年率报告-今值(%)
-    :rtype: pandas.Series
+    :return: 中国以美元计算出口年率报告
+    :rtype: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        f"https://cdn.jin10.com/dc/reports/dc_chinese_exports_yoy_all.js?v={str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)}"
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国以美元计算出口年率报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(%)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "66",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "china_exports_yoy"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(
+        symbol="中国以美元计算出口年率报告", params=params
+    )
     return temp_df
 
 
@@ -553,57 +429,19 @@ def macro_china_imports_yoy() -> pd.DataFrame:
     中国以美元计算进口年率报告, 数据区间从 19960201-至今
     https://datacenter.jin10.com/reportType/dc_chinese_imports_yoy
     https://cdn.jin10.com/dc/reports/dc_chinese_imports_yoy_all.js?v=1578754588
-    :return: 中国以美元计算进口年率报告-今值(%)
-    :rtype: pandas.Series
+    :return: 中国以美元计算进口年率报告
+    :rtype: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        f"https://cdn.jin10.com/dc/reports/dc_chinese_imports_yoy_all.js?v={str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)}"
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国以美元计算进口年率报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(%)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "77",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "china_imports_yoy"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(
+        symbol="中国以美元计算进口年率报告", params=params
+    )
     return temp_df
 
 
@@ -613,57 +451,17 @@ def macro_china_trade_balance() -> pd.DataFrame:
     中国以美元计算贸易帐报告, 数据区间从 19810201-至今
     https://datacenter.jin10.com/reportType/dc_chinese_trade_balance
     https://cdn.jin10.com/dc/reports/dc_chinese_trade_balance_all.js?v=1578754677
-    :return: 中国以美元计算贸易帐报告-今值(亿美元)
-    :rtype: pandas.Series
+    :return: 中国以美元计算贸易帐报告
+    :rtype: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        f"https://cdn.jin10.com/dc/reports/dc_chinese_trade_balance_all.js?v={str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)}"
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国以美元计算贸易帐报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(亿美元)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "61",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "china_trade_balance"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(symbol="中国以美元计算贸易帐报告", params=params)
     return temp_df
 
 
@@ -673,179 +471,57 @@ def macro_china_industrial_production_yoy() -> pd.DataFrame:
     中国规模以上工业增加值年率报告, 数据区间从19900301-至今
     https://datacenter.jin10.com/reportType/dc_chinese_industrial_production_yoy
     https://cdn.jin10.com/dc/reports/dc_chinese_industrial_production_yoy_all.js?v=1578754779
-    :return: 中国规模以上工业增加值年率报告-今值(%)
-    :rtype: pandas.Series
+    :return: 中国规模以上工业增加值年率报告
+    :rtype: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        f"https://cdn.jin10.com/dc/reports/dc_chinese_industrial_production_yoy_all.js?v={str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)}"
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国规模以上工业增加值年率报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(%)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "58",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "china_industrial_production_yoy"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(
+        symbol="中国规模以上工业增加值年率报告", params=params
+    )
     return temp_df
 
 
 # 金十数据中心-经济指标-中国-产业指标-官方制造业PMI
 def macro_china_pmi_yearly() -> pd.DataFrame:
     """
-    中国年度 PMI 数据, 数据区间从20050201-至今
+    中国年度 PMI 数据, 数据区间从 20050201-至今
     https://datacenter.jin10.com/reportType/dc_chinese_manufacturing_pmi
-    https://cdn.jin10.com/dc/reports/dc_chinese_manufacturing_pmi_all.js?v=1578817858
-    :return: pandas.Series
+    :return: 中国年度 PMI 数据
+    :return: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_PMI_YEARLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国官方制造业PMI报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
-        "max_date": "",
         "category": "ec",
         "attr_id": "65",
+        "max_date": "",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "pmi"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(symbol="中国官方制造业PMI", params=params)
     return temp_df
 
 
 # 金十数据中心-经济指标-中国-产业指标-财新制造业PMI终值
 def macro_china_cx_pmi_yearly() -> pd.DataFrame:
     """
-    中国年度财新PMI数据, 数据区间从 20120120-至今
+    中国年度财新 PMI 数据, 数据区间从 20120120-至今
     https://datacenter.jin10.com/reportType/dc_chinese_caixin_manufacturing_pmi
-    https://cdn.jin10.com/dc/reports/dc_chinese_caixin_manufacturing_pmi_all.js?v=1578818009
-    :return: pandas.Series
+    :return: 中国年度财新 PMI 数据
+    :return: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_CX_PMI_YEARLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国财新制造业PMI终值报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "73",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "cx_pmi"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(symbol="中国财新制造业PMI终值报告", params=params)
     return temp_df
 
 
@@ -855,58 +531,16 @@ def macro_china_cx_services_pmi_yearly() -> pd.DataFrame:
     中国财新服务业PMI报告, 数据区间从 20120405-至今
     https://datacenter.jin10.com/reportType/dc_chinese_caixin_services_pmi
     https://cdn.jin10.com/dc/reports/dc_chinese_caixin_services_pmi_all.js?v=1578818109
-    :return: pandas.Series
+    :return: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_CX_SERVICE_PMI_YEARLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国财新服务业PMI报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "67",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "cx_services_pmi"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(symbol="中国财新服务业PMI报告", params=params)
     return temp_df
 
 
@@ -915,59 +549,17 @@ def macro_china_non_man_pmi() -> pd.DataFrame:
     """
     中国官方非制造业 PMI, 数据区间从 20160101-至今
     https://datacenter.jin10.com/reportType/dc_chinese_non_manufacturing_pmi
-    https://cdn.jin10.com/dc/reports/dc_chinese_non_manufacturing_pmi_all.js?v=1578818248
-    :return: pandas.Series
+    :return: 中国官方非制造业 PMI
+    :return: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_NON_MAN_PMI_MONTHLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国官方非制造业PMI报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "75",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "non_pmi"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(symbol="中国官方非制造业PMI报告", params=params)
     return temp_df
 
 
@@ -976,59 +568,17 @@ def macro_china_fx_reserves_yearly() -> pd.DataFrame:
     """
     中国年度外汇储备数据, 数据区间从 20140115-至今
     https://datacenter.jin10.com/reportType/dc_chinese_fx_reserves
-    https://cdn.jin10.com/dc/reports/dc_chinese_fx_reserves_all.js?v=1578818365
-    :return: pandas.Series
+    :return: 中国年度外汇储备数据
+    :return: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_FX_RESERVES_YEARLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国外汇储备报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(亿美元)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "76",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "fx_reserves"
-    temp_df = temp_df.astype(float)
+    temp_df = __macro_china_base_func(symbol="中国外汇储备报告", params=params)
     return temp_df
 
 
@@ -1037,59 +587,17 @@ def macro_china_m2_yearly() -> pd.DataFrame:
     """
     中国年度 M2 数据, 数据区间从 19980201-至今
     https://datacenter.jin10.com/reportType/dc_chinese_m2_money_supply_yoy
-    https://cdn.jin10.com/dc/reports/dc_chinese_m2_money_supply_yoy_all.js?v=1578818474
-    :return: pandas.Series
+    :return: 中国年度 M2 数据
+    :return: pandas.DataFrame
     """
     t = time.time()
-    res = requests.get(
-        JS_CHINA_M2_YEARLY_URL.format(
-            str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
-        )
-    )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
-    date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["中国M2货币供应年率报告"] for item in json_data["list"]]
-    value_df = pd.DataFrame(value_list)
-    value_df.columns = json_data["kinds"]
-    value_df.index = pd.to_datetime(date_list)
-    temp_df = value_df["今值(%)"]
-    url = "https://datacenter-api.jin10.com/reports/list_v2"
     params = {
         "max_date": "",
         "category": "ec",
         "attr_id": "59",
         "_": str(int(round(t * 1000))),
     }
-    headers = {
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate, br",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        "origin": "https://datacenter.jin10.com",
-        "pragma": "no-cache",
-        "referer": "https://datacenter.jin10.com/reportType/dc_usa_michigan_consumer_sentiment",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
-        "x-app-id": "rU6QIu7JHe2gOUeR",
-        "x-csrf-token": "",
-        "x-version": "1.0.0",
-    }
-    r = requests.get(url, params=params, headers=headers)
-    temp_se = pd.DataFrame(r.json()["data"]["values"]).iloc[:, :2]
-    temp_se.index = pd.to_datetime(temp_se.iloc[:, 0])
-    temp_se = temp_se.iloc[:, 1]
-    temp_df = pd.concat([temp_df, temp_se])
-    temp_df.dropna(inplace=True)
-    temp_df.sort_index(inplace=True)
-    temp_df = temp_df.reset_index()
-    temp_df.drop_duplicates(subset="index", inplace=True)
-    temp_df.set_index("index", inplace=True)
-    temp_df = temp_df.squeeze()
-    temp_df.index.name = None
-    temp_df.name = "gpd"
-    temp_df = temp_df.astype("float")
+    temp_df = __macro_china_base_func(symbol="中国M2货币供应年率报告", params=params)
     return temp_df
 
 
@@ -1100,40 +608,42 @@ def macro_china_shibor_all() -> pd.DataFrame:
     https://datacenter.jin10.com/reportType/dc_shibor
     https://cdn.jin10.com/dc/reports/dc_shibor_all.js?v=1578755058
     :return: 上海银行业同业拆借报告-今值(%)
-    :rtype: pandas.Series
+    :rtype: pandas.DataFrame
     """
+    import numpy as np
+
     t = time.time()
     params = {"_": t}
     res = requests.get(
-        "https://cdn.jin10.com/data_center/reports/il_1.json", params=params
+        url="https://cdn.jin10.com/data_center/reports/il_1.json", params=params
     )
     json_data = res.json()
     temp_df = pd.DataFrame(json_data["values"]).T
     big_df = pd.DataFrame()
     temp_df.fillna(value="--", inplace=True)
-    big_df["O/N_定价"] = temp_df["O/N"].apply(lambda x: x[0])
-    big_df["O/N_涨跌幅"] = temp_df["O/N"].apply(lambda x: x[1])
-    big_df["1W_定价"] = temp_df["1W"].apply(lambda x: x[0])
-    big_df["1W_涨跌幅"] = temp_df["1W"].apply(lambda x: x[1])
-    big_df["2W_定价"] = temp_df["2W"].apply(lambda x: x[0])
-    big_df["2W_涨跌幅"] = temp_df["2W"].apply(lambda x: x[1])
-    big_df["1M_定价"] = temp_df["1M"].apply(lambda x: x[0])
-    big_df["1M_涨跌幅"] = temp_df["1M"].apply(lambda x: x[1])
-    big_df["3M_定价"] = temp_df["3M"].apply(lambda x: x[0])
-    big_df["3M_涨跌幅"] = temp_df["3M"].apply(lambda x: x[1])
-    big_df["6M_定价"] = temp_df["6M"].apply(lambda x: x[0])
-    big_df["6M_涨跌幅"] = temp_df["6M"].apply(lambda x: x[1])
-    big_df["9M_定价"] = temp_df["9M"].apply(lambda x: x[0])
-    big_df["9M_涨跌幅"] = temp_df["9M"].apply(lambda x: x[1])
-    big_df["1Y_定价"] = temp_df["1Y"].apply(lambda x: x[0])
-    big_df["1Y_涨跌幅"] = temp_df["1Y"].apply(lambda x: x[1])
-    # big_df["ON_定价"] = temp_df["ON"].apply(lambda x: x[0])
-    # big_df["ON_涨跌幅"] = temp_df["ON"].apply(lambda x: x[1])
-    # big_df["2M_定价"] = temp_df["2M"].apply(lambda x: x[0])
-    # big_df["2M_涨跌幅"] = temp_df["2M"].apply(lambda x: x[1])
-    big_df = big_df.apply(lambda x: x.replace("-", pd.NA))
-    big_df = big_df.apply(lambda x: x.replace([None], pd.NA))
+    big_df["O/N-定价"] = temp_df["O/N"].apply(lambda x: x[0])
+    big_df["O/N-涨跌幅"] = temp_df["O/N"].apply(lambda x: x[1])
+    big_df["1W-定价"] = temp_df["1W"].apply(lambda x: x[0])
+    big_df["1W-涨跌幅"] = temp_df["1W"].apply(lambda x: x[1])
+    big_df["2W-定价"] = temp_df["2W"].apply(lambda x: x[0])
+    big_df["2W-涨跌幅"] = temp_df["2W"].apply(lambda x: x[1])
+    big_df["1M-定价"] = temp_df["1M"].apply(lambda x: x[0])
+    big_df["1M-涨跌幅"] = temp_df["1M"].apply(lambda x: x[1])
+    big_df["3M-定价"] = temp_df["3M"].apply(lambda x: x[0])
+    big_df["3M-涨跌幅"] = temp_df["3M"].apply(lambda x: x[1])
+    big_df["6M-定价"] = temp_df["6M"].apply(lambda x: x[0])
+    big_df["6M-涨跌幅"] = temp_df["6M"].apply(lambda x: x[1])
+    big_df["9M-定价"] = temp_df["9M"].apply(lambda x: x[0])
+    big_df["9M-涨跌幅"] = temp_df["9M"].apply(lambda x: x[1])
+    big_df["1Y-定价"] = temp_df["1Y"].apply(lambda x: x[0])
+    big_df["1Y-涨跌幅"] = temp_df["1Y"].apply(lambda x: x[1])
+    big_df = big_df.apply(lambda x: x.replace("-", np.nan))
+    big_df = big_df.apply(lambda x: x.replace([None], np.nan))
+    for item in big_df.columns:
+        big_df[item] = pd.to_numeric(big_df[item], errors="coerce")
     big_df.sort_index(inplace=True)
+    big_df.reset_index(inplace=True)
+    big_df.rename(columns={"index": "日期"}, inplace=True)
     return big_df
 
 
@@ -1144,78 +654,42 @@ def macro_china_hk_market_info() -> pd.DataFrame:
     https://datacenter.jin10.com/reportType/dc_hk_market_info
     https://cdn.jin10.com/dc/reports/dc_hk_market_info_all.js?v=1578755471
     :return: 香港同业拆借报告-今值(%)
-    :rtype: pandas.Series
+    :rtype: pandas.DataFrame
     """
+    import numpy as np
+
     t = time.time()
     params = {"_": t}
     res = requests.get(
-        "https://cdn.jin10.com/data_center/reports/il_2.json", params=params
+        url="https://cdn.jin10.com/data_center/reports/il_2.json", params=params
     )
     json_data = res.json()
     temp_df = pd.DataFrame(json_data["values"]).T
     big_df = pd.DataFrame()
     temp_df.fillna(value="--", inplace=True)
-    # big_df["O/N_定价"] = temp_df["O/N"].apply(lambda x: x[0])
-    # big_df["O/N_涨跌幅"] = temp_df["O/N"].apply(lambda x: x[1])
-    big_df["1W_定价"] = temp_df["1W"].apply(lambda x: x[0])
-    big_df["1W_涨跌幅"] = temp_df["1W"].apply(lambda x: x[1])
-    big_df["2W_定价"] = temp_df["2W"].apply(lambda x: x[0])
-    big_df["2W_涨跌幅"] = temp_df["2W"].apply(lambda x: x[1])
-    big_df["1M_定价"] = temp_df["1M"].apply(lambda x: x[0])
-    big_df["1M_涨跌幅"] = temp_df["1M"].apply(lambda x: x[1])
-    big_df["3M_定价"] = temp_df["3M"].apply(lambda x: x[0])
-    big_df["3M_涨跌幅"] = temp_df["3M"].apply(lambda x: x[1])
-    big_df["6M_定价"] = temp_df["6M"].apply(lambda x: x[0])
-    big_df["6M_涨跌幅"] = temp_df["6M"].apply(lambda x: x[1])
-    # big_df["9M_定价"] = temp_df["9M"].apply(lambda x: x[0])
-    # big_df["9M_涨跌幅"] = temp_df["9M"].apply(lambda x: x[1])
-    big_df["1Y_定价"] = temp_df["1Y"].apply(lambda x: x[0])
-    big_df["1Y_涨跌幅"] = temp_df["1Y"].apply(lambda x: x[1])
-    big_df["ON_定价"] = temp_df["ON"].apply(lambda x: x[0])
-    big_df["ON_涨跌幅"] = temp_df["ON"].apply(lambda x: x[1])
-    big_df["2M_定价"] = temp_df["2M"].apply(lambda x: x[0])
-    big_df["2M_涨跌幅"] = temp_df["2M"].apply(lambda x: x[1])
-    big_df = big_df.apply(lambda x: x.replace("-", pd.NA))
-    big_df = big_df.apply(lambda x: x.replace([None], pd.NA))
+    big_df["1W-定价"] = temp_df["1W"].apply(lambda x: x[0])
+    big_df["1W-涨跌幅"] = temp_df["1W"].apply(lambda x: x[1])
+    big_df["2W-定价"] = temp_df["2W"].apply(lambda x: x[0])
+    big_df["2W-涨跌幅"] = temp_df["2W"].apply(lambda x: x[1])
+    big_df["1M-定价"] = temp_df["1M"].apply(lambda x: x[0])
+    big_df["1M-涨跌幅"] = temp_df["1M"].apply(lambda x: x[1])
+    big_df["3M-定价"] = temp_df["3M"].apply(lambda x: x[0])
+    big_df["3M-涨跌幅"] = temp_df["3M"].apply(lambda x: x[1])
+    big_df["6M-定价"] = temp_df["6M"].apply(lambda x: x[0])
+    big_df["6M-涨跌幅"] = temp_df["6M"].apply(lambda x: x[1])
+    big_df["1Y-定价"] = temp_df["1Y"].apply(lambda x: x[0])
+    big_df["1Y-涨跌幅"] = temp_df["1Y"].apply(lambda x: x[1])
+    big_df["ON-定价"] = temp_df["ON"].apply(lambda x: x[0])
+    big_df["ON-涨跌幅"] = temp_df["ON"].apply(lambda x: x[1])
+    big_df["2M-定价"] = temp_df["2M"].apply(lambda x: x[0])
+    big_df["2M-涨跌幅"] = temp_df["2M"].apply(lambda x: x[1])
+    big_df = big_df.apply(lambda x: x.replace("-", np.nan))
+    big_df = big_df.apply(lambda x: x.replace([None], np.nan))
+    for item in big_df.columns:
+        big_df[item] = pd.to_numeric(big_df[item], errors="coerce")
     big_df.sort_index(inplace=True)
     big_df.reset_index(inplace=True)
-    big_df.columns = [
-        "日期",
-        "1W_定价",
-        "1W_涨跌幅",
-        "2W_定价",
-        "2W_涨跌幅",
-        "1M_定价",
-        "1M_涨跌幅",
-        "3M_定价",
-        "3M_涨跌幅",
-        "6M_定价",
-        "6M_涨跌幅",
-        "1Y_定价",
-        "1Y_涨跌幅",
-        "ON_定价",
-        "ON_涨跌幅",
-        "2M_定价",
-        "2M_涨跌幅",
-    ]
-
-    big_df["1W_定价"] = pd.to_numeric(big_df["1W_定价"])
-    big_df["1W_涨跌幅"] = pd.to_numeric(big_df["1W_涨跌幅"])
-    big_df["2W_定价"] = pd.to_numeric(big_df["2W_定价"])
-    big_df["2W_涨跌幅"] = pd.to_numeric(big_df["2W_涨跌幅"])
-    big_df["1M_定价"] = pd.to_numeric(big_df["1M_定价"])
-    big_df["1M_涨跌幅"] = pd.to_numeric(big_df["1M_涨跌幅"])
-    big_df["3M_定价"] = pd.to_numeric(big_df["3M_定价"])
-    big_df["3M_涨跌幅"] = pd.to_numeric(big_df["3M_涨跌幅"])
-    big_df["6M_定价"] = pd.to_numeric(big_df["6M_定价"])
-    big_df["6M_涨跌幅"] = pd.to_numeric(big_df["6M_涨跌幅"])
-    big_df["1Y_定价"] = pd.to_numeric(big_df["1Y_定价"])
-    big_df["1Y_涨跌幅"] = pd.to_numeric(big_df["1Y_涨跌幅"])
-    big_df["ON_定价"] = pd.to_numeric(big_df["ON_定价"])
-    big_df["ON_涨跌幅"] = pd.to_numeric(big_df["ON_涨跌幅"])
-    big_df["2M_定价"] = pd.to_numeric(big_df["2M_定价"])
-    big_df["2M_涨跌幅"] = pd.to_numeric(big_df["2M_涨跌幅"])
-
+    big_df.rename(columns={"index": "日期"}, inplace=True)
     return big_df
 
 
@@ -1224,20 +698,7 @@ def macro_china_daily_energy() -> pd.DataFrame:
     """
     中国日度沿海六大电库存数据, 数据区间从20160101-至今
     https://datacenter.jin10.com/reportType/dc_qihuo_energy_report
-    https://cdn.jin10.com/dc/reports/dc_qihuo_energy_report_all.js?v=1578819100
-    :return: pandas.Series
-                 沿海六大电库存      日耗 存煤可用天数
-    2016-01-01  1167.60   64.20   18.19
-    2016-01-02  1162.90   63.40   18.34
-    2016-01-03  1160.80   62.60   18.54
-    2016-01-04  1185.30   57.60   20.58
-    2016-01-05  1150.20   57.20   20.11
-                  ...     ...    ...
-    2019-05-17   1639.47   61.71  26.56
-    2019-05-21   1591.92   62.67  25.40
-    2019-05-22   1578.63   59.54  26.51
-    2019-05-24   1671.83   60.65  27.56
-    2019-06-21   1786.64   66.57  26.84
+    :return: pandas.DataFrame
     """
     t = time.time()
     res = requests.get(
@@ -1245,15 +706,20 @@ def macro_china_daily_energy() -> pd.DataFrame:
             str(int(round(t * 1000))), str(int(round(t * 1000)) + 90)
         )
     )
-    json_data = json.loads(res.text[res.text.find("{"): res.text.rfind("}") + 1])
+    json_data = json.loads(res.text[res.text.find("{") : res.text.rfind("}") + 1])
     date_list = [item["date"] for item in json_data["list"]]
-    value_list = [item["datas"]["沿海六大电厂库存动态报告"] for item in json_data["list"]]
+    value_list = [
+        item["datas"]["沿海六大电厂库存动态报告"] for item in json_data["list"]
+    ]
     value_df = pd.DataFrame(value_list)
     value_df.columns = json_data["kinds"]
     value_df.index = pd.to_datetime(date_list)
     temp_df = value_df[["沿海六大电库存", "日耗", "存煤可用天数"]]
     temp_df.name = "energy"
     temp_df = temp_df.astype(float)
+    temp_df.reset_index(inplace=True)
+    temp_df.rename(columns={"index": "日期"}, inplace=True)
+    temp_df["日期"] = pd.to_datetime(temp_df["日期"], errors="coerce").dt.date
     return temp_df
 
 
@@ -1295,32 +761,64 @@ def macro_china_rmb() -> pd.DataFrame:
     big_df["瑞郎/人民币_涨跌幅"] = temp_df["瑞郎/人民币"].apply(lambda x: x[1])
     big_df["加元/人民币_中间价"] = temp_df["加元/人民币"].apply(lambda x: x[0])
     big_df["加元/人民币_涨跌幅"] = temp_df["加元/人民币"].apply(lambda x: x[1])
-    big_df["人民币/马来西亚林吉特_中间价"] = temp_df["人民币/马来西亚林吉特"].apply(lambda x: x[0])
-    big_df["人民币/马来西亚林吉特_涨跌幅"] = temp_df["人民币/马来西亚林吉特"].apply(lambda x: x[1])
-    big_df["人民币/俄罗斯卢布_中间价"] = temp_df["人民币/俄罗斯卢布"].apply(lambda x: x[0])
-    big_df["人民币/俄罗斯卢布_涨跌幅"] = temp_df["人民币/俄罗斯卢布"].apply(lambda x: x[1])
+    big_df["人民币/马来西亚林吉特_中间价"] = temp_df["人民币/马来西亚林吉特"].apply(
+        lambda x: x[0]
+    )
+    big_df["人民币/马来西亚林吉特_涨跌幅"] = temp_df["人民币/马来西亚林吉特"].apply(
+        lambda x: x[1]
+    )
+    big_df["人民币/俄罗斯卢布_中间价"] = temp_df["人民币/俄罗斯卢布"].apply(
+        lambda x: x[0]
+    )
+    big_df["人民币/俄罗斯卢布_涨跌幅"] = temp_df["人民币/俄罗斯卢布"].apply(
+        lambda x: x[1]
+    )
     big_df["人民币/南非兰特_中间价"] = temp_df["人民币/南非兰特"].apply(lambda x: x[0])
     big_df["人民币/南非兰特_涨跌幅"] = temp_df["人民币/南非兰特"].apply(lambda x: x[1])
     big_df["人民币/韩元_中间价"] = temp_df["人民币/韩元"].apply(lambda x: x[0])
     big_df["人民币/韩元_涨跌幅"] = temp_df["人民币/韩元"].apply(lambda x: x[1])
-    big_df["人民币/阿联酋迪拉姆_中间价"] = temp_df["人民币/阿联酋迪拉姆"].apply(lambda x: x[0])
-    big_df["人民币/阿联酋迪拉姆_涨跌幅"] = temp_df["人民币/阿联酋迪拉姆"].apply(lambda x: x[1])
-    big_df["人民币/沙特里亚尔_中间价"] = temp_df["人民币/沙特里亚尔"].apply(lambda x: x[0])
-    big_df["人民币/沙特里亚尔_涨跌幅"] = temp_df["人民币/沙特里亚尔"].apply(lambda x: x[1])
-    big_df["人民币/匈牙利福林_中间价"] = temp_df["人民币/匈牙利福林"].apply(lambda x: x[0])
-    big_df["人民币/匈牙利福林_涨跌幅"] = temp_df["人民币/匈牙利福林"].apply(lambda x: x[1])
-    big_df["人民币/波兰兹罗提_中间价"] = temp_df["人民币/波兰兹罗提"].apply(lambda x: x[0])
-    big_df["人民币/波兰兹罗提_涨跌幅"] = temp_df["人民币/波兰兹罗提"].apply(lambda x: x[1])
+    big_df["人民币/阿联酋迪拉姆_中间价"] = temp_df["人民币/阿联酋迪拉姆"].apply(
+        lambda x: x[0]
+    )
+    big_df["人民币/阿联酋迪拉姆_涨跌幅"] = temp_df["人民币/阿联酋迪拉姆"].apply(
+        lambda x: x[1]
+    )
+    big_df["人民币/沙特里亚尔_中间价"] = temp_df["人民币/沙特里亚尔"].apply(
+        lambda x: x[0]
+    )
+    big_df["人民币/沙特里亚尔_涨跌幅"] = temp_df["人民币/沙特里亚尔"].apply(
+        lambda x: x[1]
+    )
+    big_df["人民币/匈牙利福林_中间价"] = temp_df["人民币/匈牙利福林"].apply(
+        lambda x: x[0]
+    )
+    big_df["人民币/匈牙利福林_涨跌幅"] = temp_df["人民币/匈牙利福林"].apply(
+        lambda x: x[1]
+    )
+    big_df["人民币/波兰兹罗提_中间价"] = temp_df["人民币/波兰兹罗提"].apply(
+        lambda x: x[0]
+    )
+    big_df["人民币/波兰兹罗提_涨跌幅"] = temp_df["人民币/波兰兹罗提"].apply(
+        lambda x: x[1]
+    )
     big_df["人民币/丹麦克朗_中间价"] = temp_df["人民币/丹麦克朗"].apply(lambda x: x[0])
     big_df["人民币/丹麦克朗_涨跌幅"] = temp_df["人民币/丹麦克朗"].apply(lambda x: x[1])
     big_df["人民币/瑞典克朗_中间价"] = temp_df["人民币/瑞典克朗"].apply(lambda x: x[0])
     big_df["人民币/瑞典克朗_涨跌幅"] = temp_df["人民币/瑞典克朗"].apply(lambda x: x[1])
     big_df["人民币/挪威克朗_中间价"] = temp_df["人民币/挪威克朗"].apply(lambda x: x[0])
     big_df["人民币/挪威克朗_涨跌幅"] = temp_df["人民币/挪威克朗"].apply(lambda x: x[1])
-    big_df["人民币/土耳其里拉_中间价"] = temp_df["人民币/土耳其里拉"].apply(lambda x: x[0])
-    big_df["人民币/土耳其里拉_涨跌幅"] = temp_df["人民币/土耳其里拉"].apply(lambda x: x[1])
-    big_df["人民币/墨西哥比索_中间价"] = temp_df["人民币/墨西哥比索"].apply(lambda x: x[0])
-    big_df["人民币/墨西哥比索_涨跌幅"] = temp_df["人民币/墨西哥比索"].apply(lambda x: x[1])
+    big_df["人民币/土耳其里拉_中间价"] = temp_df["人民币/土耳其里拉"].apply(
+        lambda x: x[0]
+    )
+    big_df["人民币/土耳其里拉_涨跌幅"] = temp_df["人民币/土耳其里拉"].apply(
+        lambda x: x[1]
+    )
+    big_df["人民币/墨西哥比索_中间价"] = temp_df["人民币/墨西哥比索"].apply(
+        lambda x: x[0]
+    )
+    big_df["人民币/墨西哥比索_涨跌幅"] = temp_df["人民币/墨西哥比索"].apply(
+        lambda x: x[1]
+    )
     big_df["人民币/泰铢_定价"] = temp_df["人民币/泰铢"].apply(lambda x: x[0])
     big_df["人民币/泰铢_涨跌幅"] = temp_df["人民币/泰铢"].apply(lambda x: x[1])
     big_df = big_df.apply(lambda x: x.replace("-", pd.NA))
@@ -1339,42 +837,28 @@ def macro_china_market_margin_sz() -> pd.DataFrame:
     深圳融资融券报告, 数据区间从20100331-至今
     https://datacenter.jin10.com/reportType/dc_market_margin_sz
     :return: pandas.DataFrame
-                   融资买入额(元)       融资余额(元)  融券卖出量(股)    融券余量(股)     融券余额(元)  \
-    2010-03-31       684569        670796      4000       3900       70895
-    2010-04-08      6713260      14467758      2100       3100       56023
-    2010-04-09      9357095      19732998      6700       5400      108362
-    2010-04-12     10406563      24813027      2200       1000        8100
-    2010-04-15     16607172      47980287      4200       5200       97676
-                     ...           ...       ...        ...         ...
-    2019-12-12  25190412075  423457288662  29769255  209557883  2504593151
-    2019-12-13  29636811209  423422868505  32820867  206092170  2509424768
-    2019-12-16  39166060634  428851154451  44000215  217123568  2647520178
-    2019-12-17  46930557203  433966722200  40492711  220945538  2750371397
-    2019-12-18  41043515833  438511398249  39150376  224554586  2761303194
-                   融资融券余额(元)
-    2010-03-31        741691
-    2010-04-08      14523781
-    2010-04-09      19841360
-    2010-04-12      24821127
-    2010-04-15      48077963
-                      ...
-    2019-12-12  425961881813
-    2019-12-13  425932293273
-    2019-12-16  431498674629
-    2019-12-17  436717093597
-    2019-12-18  441272701443
     """
     t = time.time()
     params = {"_": t}
     res = requests.get(
-        "https://cdn.jin10.com/data_center/reports/fs_2.json", params=params
+        url="https://cdn.jin10.com/data_center/reports/fs_2.json", params=params
     )
     json_data = res.json()
     temp_df = pd.DataFrame(json_data["values"]).T
-    temp_df.columns = ["融资买入额", "融资余额", "融券卖出量", "融券余量", "融券余额", "融资融券余额"]
+    temp_df.columns = [
+        "融资买入额",
+        "融资余额",
+        "融券卖出量",
+        "融券余量",
+        "融券余额",
+        "融资融券余额",
+    ]
     temp_df.sort_index(inplace=True)
     temp_df.index = pd.to_datetime(temp_df.index)
     temp_df = temp_df.astype("float")
+    temp_df.reset_index(inplace=True)
+    temp_df.rename(columns={"index": "日期"}, inplace=True)
+    temp_df["日期"] = pd.to_datetime(temp_df["日期"], errors="coerce").dt.date
     return temp_df
 
 
@@ -1392,15 +876,23 @@ def macro_china_market_margin_sh() -> pd.DataFrame:
     json_data = r.json()
     temp_df = pd.DataFrame(json_data["values"]).T
     temp_df.reset_index(inplace=True)
-    temp_df.columns = ["日期", "融资买入额", "融资余额", "融券卖出量", "融券余量", "融券余额", "融资融券余额"]
+    temp_df.columns = [
+        "日期",
+        "融资买入额",
+        "融资余额",
+        "融券卖出量",
+        "融券余量",
+        "融券余额",
+        "融资融券余额",
+    ]
     temp_df.sort_values(by=["日期"], inplace=True, ignore_index=True)
-    temp_df['日期'] = pd.to_datetime(temp_df['日期'], errors="coerce").dt.date
-    temp_df['融资买入额'] = pd.to_numeric(temp_df['融资买入额'], errors="coerce")
-    temp_df['融资余额'] = pd.to_numeric(temp_df['融资余额'], errors="coerce")
-    temp_df['融券卖出量'] = pd.to_numeric(temp_df['融券卖出量'], errors="coerce")
-    temp_df['融券余量'] = pd.to_numeric(temp_df['融券余量'], errors="coerce")
-    temp_df['融券余额'] = pd.to_numeric(temp_df['融券余额'], errors="coerce")
-    temp_df['融资融券余额'] = pd.to_numeric(temp_df['融资融券余额'], errors="coerce")
+    temp_df["日期"] = pd.to_datetime(temp_df["日期"], errors="coerce").dt.date
+    temp_df["融资买入额"] = pd.to_numeric(temp_df["融资买入额"], errors="coerce")
+    temp_df["融资余额"] = pd.to_numeric(temp_df["融资余额"], errors="coerce")
+    temp_df["融券卖出量"] = pd.to_numeric(temp_df["融券卖出量"], errors="coerce")
+    temp_df["融券余量"] = pd.to_numeric(temp_df["融券余量"], errors="coerce")
+    temp_df["融券余额"] = pd.to_numeric(temp_df["融券余额"], errors="coerce")
+    temp_df["融资融券余额"] = pd.to_numeric(temp_df["融资融券余额"], errors="coerce")
     return temp_df
 
 
@@ -1414,7 +906,7 @@ def macro_china_au_report() -> pd.DataFrame:
     t = time.time()
     params = {"_": t}
     res = requests.get(
-        "https://cdn.jin10.com/data_center/reports/sge.json", params=params
+        url="https://cdn.jin10.com/data_center/reports/sge.json", params=params
     )
     json_data = res.json()
     big_df = pd.DataFrame()
@@ -1494,21 +986,21 @@ def macro_china_lpr() -> pd.DataFrame:
         r = requests.get(url, params=params)
         data_json = r.json()
         temp_df = pd.DataFrame(data_json["result"]["data"])
-        big_df = pd.concat([big_df, temp_df], ignore_index=True)
+        big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
 
     big_df["TRADE_DATE"] = pd.to_datetime(big_df["TRADE_DATE"], errors="coerce").dt.date
     big_df["LPR1Y"] = pd.to_numeric(big_df["LPR1Y"], errors="coerce")
     big_df["LPR5Y"] = pd.to_numeric(big_df["LPR5Y"], errors="coerce")
     big_df["RATE_1"] = pd.to_numeric(big_df["RATE_1"], errors="coerce")
     big_df["RATE_2"] = pd.to_numeric(big_df["RATE_2"], errors="coerce")
-    big_df.sort_values(["TRADE_DATE"], inplace=True)
+    big_df.sort_values(by=["TRADE_DATE"], inplace=True)
     big_df.reset_index(inplace=True, drop=True)
     return big_df
 
 
 # 中国-新房价指数
 def macro_china_new_house_price(
-        city_first: str = "北京", city_second: str = "上海"
+    city_first: str = "北京", city_second: str = "上海"
 ) -> pd.DataFrame:
     """
     中国-新房价指数
@@ -1523,7 +1015,8 @@ def macro_china_new_house_price(
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     params = {
         "reportName": "RPT_ECONOMY_HOUSE_PRICE",
-        "columns": "REPORT_DATE,CITY,FIRST_COMHOUSE_SAME,FIRST_COMHOUSE_SEQUENTIAL,FIRST_COMHOUSE_BASE,SECOND_HOUSE_SAME,SECOND_HOUSE_SEQUENTIAL,SECOND_HOUSE_BASE,REPORT_DAY",
+        "columns": "REPORT_DATE,CITY,FIRST_COMHOUSE_SAME,FIRST_COMHOUSE_SEQUENTIAL,FIRST_COMHOUSE_BASE,"
+        "SECOND_HOUSE_SAME,SECOND_HOUSE_SEQUENTIAL,SECOND_HOUSE_BASE,REPORT_DAY",
         "filter": f'(CITY in ("{city_first}","{city_second}"))',
         "pageNumber": "1",
         "pageSize": "500",
@@ -1562,13 +1055,25 @@ def macro_china_new_house_price(
             "二手住宅价格指数-定基",
         ]
     ]
-    temp_df["日期"] = pd.to_datetime(temp_df["日期"]).dt.date
-    temp_df["新建商品住宅价格指数-同比"] = pd.to_numeric(temp_df["新建商品住宅价格指数-同比"], errors="coerce")
-    temp_df["新建商品住宅价格指数-环比"] = pd.to_numeric(temp_df["新建商品住宅价格指数-环比"], errors="coerce")
-    temp_df["新建商品住宅价格指数-定基"] = pd.to_numeric(temp_df["新建商品住宅价格指数-定基"], errors="coerce")
-    temp_df["二手住宅价格指数-环比"] = pd.to_numeric(temp_df["二手住宅价格指数-环比"], errors="coerce")
-    temp_df["二手住宅价格指数-同比"] = pd.to_numeric(temp_df["二手住宅价格指数-同比"], errors="coerce")
-    temp_df["二手住宅价格指数-定基"] = pd.to_numeric(temp_df["二手住宅价格指数-定基"], errors="coerce")
+    temp_df["日期"] = pd.to_datetime(temp_df["日期"], errors="coerce").dt.date
+    temp_df["新建商品住宅价格指数-同比"] = pd.to_numeric(
+        temp_df["新建商品住宅价格指数-同比"], errors="coerce"
+    )
+    temp_df["新建商品住宅价格指数-环比"] = pd.to_numeric(
+        temp_df["新建商品住宅价格指数-环比"], errors="coerce"
+    )
+    temp_df["新建商品住宅价格指数-定基"] = pd.to_numeric(
+        temp_df["新建商品住宅价格指数-定基"], errors="coerce"
+    )
+    temp_df["二手住宅价格指数-环比"] = pd.to_numeric(
+        temp_df["二手住宅价格指数-环比"], errors="coerce"
+    )
+    temp_df["二手住宅价格指数-同比"] = pd.to_numeric(
+        temp_df["二手住宅价格指数-同比"], errors="coerce"
+    )
+    temp_df["二手住宅价格指数-定基"] = pd.to_numeric(
+        temp_df["二手住宅价格指数-定基"], errors="coerce"
+    )
     return temp_df
 
 
@@ -1619,12 +1124,24 @@ def macro_china_enterprise_boom_index() -> pd.DataFrame:
             "企业家信心指数-环比",
         ]
     ]
-    temp_df["企业景气指数-指数"] = pd.to_numeric(temp_df["企业景气指数-指数"], errors="coerce")
-    temp_df["企业家信心指数-指数"] = pd.to_numeric(temp_df["企业家信心指数-指数"], errors="coerce")
-    temp_df["企业景气指数-同比"] = pd.to_numeric(temp_df["企业景气指数-同比"], errors="coerce")
-    temp_df["企业景气指数-环比"] = pd.to_numeric(temp_df["企业景气指数-环比"], errors="coerce")
-    temp_df["企业家信心指数-同比"] = pd.to_numeric(temp_df["企业家信心指数-同比"], errors="coerce")
-    temp_df["企业家信心指数-环比"] = pd.to_numeric(temp_df["企业家信心指数-环比"], errors="coerce")
+    temp_df["企业景气指数-指数"] = pd.to_numeric(
+        temp_df["企业景气指数-指数"], errors="coerce"
+    )
+    temp_df["企业家信心指数-指数"] = pd.to_numeric(
+        temp_df["企业家信心指数-指数"], errors="coerce"
+    )
+    temp_df["企业景气指数-同比"] = pd.to_numeric(
+        temp_df["企业景气指数-同比"], errors="coerce"
+    )
+    temp_df["企业景气指数-环比"] = pd.to_numeric(
+        temp_df["企业景气指数-环比"], errors="coerce"
+    )
+    temp_df["企业家信心指数-同比"] = pd.to_numeric(
+        temp_df["企业家信心指数-同比"], errors="coerce"
+    )
+    temp_df["企业家信心指数-环比"] = pd.to_numeric(
+        temp_df["企业家信心指数-环比"], errors="coerce"
+    )
     return temp_df
 
 
@@ -2179,6 +1696,9 @@ def macro_china_construction_index() -> pd.DataFrame:
     :return: 建材指数
     :rtype: pandas.DataFrame
     """
+    import warnings
+
+    warnings.filterwarnings(action="ignore", category=FutureWarning)
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     params = {
         "sortColumns": "REPORT_DATE",
@@ -2186,7 +1706,8 @@ def macro_china_construction_index() -> pd.DataFrame:
         "pageSize": "500",
         "pageNumber": "1",
         "reportName": "RPT_INDUSTRY_INDEX",
-        "columns": "REPORT_DATE,INDICATOR_VALUE,CHANGE_RATE,CHANGERATE_3M,CHANGERATE_6M,CHANGERATE_1Y,CHANGERATE_2Y,CHANGERATE_3Y",
+        "columns": "REPORT_DATE,INDICATOR_VALUE,CHANGE_RATE,CHANGERATE_3M,CHANGERATE_6M,"
+        "CHANGERATE_1Y,CHANGERATE_2Y,CHANGERATE_3Y",
         "filter": '(INDICATOR_ID="EMI00662541")',
         "source": "WEB",
         "client": "WEB",
@@ -2200,7 +1721,7 @@ def macro_china_construction_index() -> pd.DataFrame:
         r = requests.get(url, params=params)
         data_json = r.json()
         temp_df = pd.DataFrame(data_json["result"]["data"])
-        big_df = pd.concat([big_df, temp_df], ignore_index=True)
+        big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
     big_df.drop_duplicates(inplace=True)
     big_df.columns = [
         "日期",
@@ -2212,15 +1733,15 @@ def macro_china_construction_index() -> pd.DataFrame:
         "近2年涨跌幅",
         "近3年涨跌幅",
     ]
-    big_df["日期"] = pd.to_datetime(big_df["日期"]).dt.date
-    big_df["最新值"] = pd.to_numeric(big_df["最新值"])
-    big_df["涨跌幅"] = pd.to_numeric(big_df["涨跌幅"])
-    big_df["近3月涨跌幅"] = pd.to_numeric(big_df["近3月涨跌幅"])
-    big_df["近6月涨跌幅"] = pd.to_numeric(big_df["近6月涨跌幅"])
-    big_df["近1年涨跌幅"] = pd.to_numeric(big_df["近1年涨跌幅"])
-    big_df["近2年涨跌幅"] = pd.to_numeric(big_df["近2年涨跌幅"])
-    big_df["近3年涨跌幅"] = pd.to_numeric(big_df["近3年涨跌幅"])
-    big_df.sort_values(["日期"], inplace=True)
+    big_df["日期"] = pd.to_datetime(big_df["日期"], errors="coerce").dt.date
+    big_df["最新值"] = pd.to_numeric(big_df["最新值"], errors="coerce")
+    big_df["涨跌幅"] = pd.to_numeric(big_df["涨跌幅"], errors="coerce")
+    big_df["近3月涨跌幅"] = pd.to_numeric(big_df["近3月涨跌幅"], errors="coerce")
+    big_df["近6月涨跌幅"] = pd.to_numeric(big_df["近6月涨跌幅"], errors="coerce")
+    big_df["近1年涨跌幅"] = pd.to_numeric(big_df["近1年涨跌幅"], errors="coerce")
+    big_df["近2年涨跌幅"] = pd.to_numeric(big_df["近2年涨跌幅"], errors="coerce")
+    big_df["近3年涨跌幅"] = pd.to_numeric(big_df["近3年涨跌幅"], errors="coerce")
+    big_df.sort_values(by=["日期"], inplace=True)
     big_df.reset_index(inplace=True, drop=True)
     return big_df
 
@@ -2440,6 +1961,8 @@ def macro_china_bsi_index() -> pd.DataFrame:
 def _em_macro_1(em_id) -> pd.DataFrame:
     """
     东财宏观数据的一种通用函数
+    :return: 处理后的数据
+    :rtype: pandas.DataFrame
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     ind_id = '"' + em_id + '"'
@@ -2449,7 +1972,8 @@ def _em_macro_1(em_id) -> pd.DataFrame:
         "pageSize": "500",
         "pageNumber": "1",
         "reportName": "RPT_INDUSTRY_INDEX",
-        "columns": "REPORT_DATE,INDICATOR_VALUE,CHANGE_RATE,CHANGERATE_3M,CHANGERATE_6M,CHANGERATE_1Y,CHANGERATE_2Y,CHANGERATE_3Y",
+        "columns": "REPORT_DATE,INDICATOR_VALUE,CHANGE_RATE,CHANGERATE_3M,"
+        "CHANGERATE_6M,CHANGERATE_1Y,CHANGERATE_2Y,CHANGERATE_3Y",
         "filter": "(INDICATOR_ID=" + ind_id + ")",
         "source": "WEB",
         "client": "WEB",
@@ -2475,15 +1999,15 @@ def _em_macro_1(em_id) -> pd.DataFrame:
         "近2年涨跌幅",
         "近3年涨跌幅",
     ]
-    big_df["日期"] = pd.to_datetime(big_df["日期"]).dt.date
-    big_df["最新值"] = pd.to_numeric(big_df["最新值"])
-    big_df["涨跌幅"] = pd.to_numeric(big_df["涨跌幅"])
-    big_df["近3月涨跌幅"] = pd.to_numeric(big_df["近3月涨跌幅"])
-    big_df["近6月涨跌幅"] = pd.to_numeric(big_df["近6月涨跌幅"])
-    big_df["近1年涨跌幅"] = pd.to_numeric(big_df["近1年涨跌幅"])
-    big_df["近2年涨跌幅"] = pd.to_numeric(big_df["近2年涨跌幅"])
-    big_df["近3年涨跌幅"] = pd.to_numeric(big_df["近3年涨跌幅"])
-    big_df.sort_values(["日期"], inplace=True)
+    big_df["日期"] = pd.to_datetime(big_df["日期"], errors="coerce").dt.date
+    big_df["最新值"] = pd.to_numeric(big_df["最新值"], errors="coerce")
+    big_df["涨跌幅"] = pd.to_numeric(big_df["涨跌幅"], errors="coerce")
+    big_df["近3月涨跌幅"] = pd.to_numeric(big_df["近3月涨跌幅"], errors="coerce")
+    big_df["近6月涨跌幅"] = pd.to_numeric(big_df["近6月涨跌幅"], errors="coerce")
+    big_df["近1年涨跌幅"] = pd.to_numeric(big_df["近1年涨跌幅"], errors="coerce")
+    big_df["近2年涨跌幅"] = pd.to_numeric(big_df["近2年涨跌幅"], errors="coerce")
+    big_df["近3年涨跌幅"] = pd.to_numeric(big_df["近3年涨跌幅"], errors="coerce")
+    big_df.sort_values(by=["日期"], inplace=True)
     big_df.reset_index(inplace=True, drop=True)
     return big_df
 
@@ -2541,7 +2065,8 @@ def macro_china_new_financial_credit() -> pd.DataFrame:
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     params = {
-        "columns": "REPORT_DATE,TIME,RMB_LOAN,RMB_LOAN_SAME,RMB_LOAN_SEQUENTIAL,RMB_LOAN_ACCUMULATE,LOAN_ACCUMULATE_SAME",
+        "columns": "REPORT_DATE,TIME,RMB_LOAN,RMB_LOAN_SAME,RMB_LOAN_SEQUENTIAL,"
+        "RMB_LOAN_ACCUMULATE,LOAN_ACCUMULATE_SAME",
         "pageNumber": "1",
         "pageSize": "2000",
         "sortColumns": "REPORT_DATE",
@@ -2558,8 +2083,18 @@ def macro_china_new_financial_credit() -> pd.DataFrame:
     data_json = r.json()
     temp_df = pd.DataFrame(data_json["result"]["data"])
 
-    temp_df.columns = ["-", "月份", "当月", "当月-同比增长", "当月-环比增长", "累计", "累计-同比增长"]
-    temp_df = temp_df[["月份", "当月", "当月-同比增长", "当月-环比增长", "累计", "累计-同比增长"]]
+    temp_df.columns = [
+        "-",
+        "月份",
+        "当月",
+        "当月-同比增长",
+        "当月-环比增长",
+        "累计",
+        "累计-同比增长",
+    ]
+    temp_df = temp_df[
+        ["月份", "当月", "当月-同比增长", "当月-环比增长", "累计", "累计-同比增长"]
+    ]
 
     temp_df["当月"] = pd.to_numeric(temp_df["当月"], errors="coerce")
     temp_df["当月-同比增长"] = pd.to_numeric(temp_df["当月-同比增长"], errors="coerce")
@@ -2579,10 +2114,12 @@ def macro_china_fx_gold() -> pd.DataFrame:
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/81.0.4044.138 Safari/537.36",
     }
     params = {
-        "columns": "REPORT_DATE,TIME,GOLD_RESERVES,GOLD_RESERVES_SAME,GOLD_RESERVES_SEQUENTIAL,FOREX,FOREX_SAME,FOREX_SEQUENTIAL",
+        "columns": "REPORT_DATE,TIME,GOLD_RESERVES,GOLD_RESERVES_SAME,"
+        "GOLD_RESERVES_SEQUENTIAL,FOREX,FOREX_SAME,FOREX_SEQUENTIAL",
         "pageNumber": "1",
         "pageSize": "1000",
         "sortColumns": "REPORT_DATE",
@@ -2619,13 +2156,19 @@ def macro_china_fx_gold() -> pd.DataFrame:
             "国家外汇储备-环比",
         ]
     ]
-    temp_df["国家外汇储备-数值"] = pd.to_numeric(temp_df["国家外汇储备-数值"])
-    temp_df["国家外汇储备-同比"] = pd.to_numeric(temp_df["国家外汇储备-同比"])
-    temp_df["国家外汇储备-环比"] = pd.to_numeric(temp_df["国家外汇储备-环比"])
-    temp_df["黄金储备-数值"] = pd.to_numeric(temp_df["黄金储备-数值"])
-    temp_df["黄金储备-同比"] = pd.to_numeric(temp_df["黄金储备-同比"])
-    temp_df["黄金储备-环比"] = pd.to_numeric(temp_df["黄金储备-环比"])
-    temp_df.sort_values(["月份"], inplace=True, ignore_index=True)
+    temp_df["国家外汇储备-数值"] = pd.to_numeric(
+        temp_df["国家外汇储备-数值"], errors="coerce"
+    )
+    temp_df["国家外汇储备-同比"] = pd.to_numeric(
+        temp_df["国家外汇储备-同比"], errors="coerce"
+    )
+    temp_df["国家外汇储备-环比"] = pd.to_numeric(
+        temp_df["国家外汇储备-环比"], errors="coerce"
+    )
+    temp_df["黄金储备-数值"] = pd.to_numeric(temp_df["黄金储备-数值"], errors="coerce")
+    temp_df["黄金储备-同比"] = pd.to_numeric(temp_df["黄金储备-同比"], errors="coerce")
+    temp_df["黄金储备-环比"] = pd.to_numeric(temp_df["黄金储备-环比"], errors="coerce")
+    temp_df.sort_values(by=["月份"], inplace=True, ignore_index=True)
     return temp_df
 
 
@@ -2638,11 +2181,13 @@ def macro_china_stock_market_cap() -> pd.DataFrame:
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/81.0.4044.138 Safari/537.36",
     }
     params = {
         "reportName": "RPT_ECONOMY_STOCK_STATISTICS",
-        "columns": "REPORT_DATE,TIME,TOTAL_SHARES_SH,TOTAL_MARKE_SH,DEAL_AMOUNT_SH,VOLUME_SH,HIGH_INDEX_SH,LOW_INDEX_SH,TOTAL_SZARES_SZ,TOTAL_MARKE_SZ,DEAL_AMOUNT_SZ,VOLUME_SZ,HIGH_INDEX_SZ,LOW_INDEX_SZ",
+        "columns": "REPORT_DATE,TIME,TOTAL_SHARES_SH,TOTAL_MARKE_SH,DEAL_AMOUNT_SH,VOLUME_SH,HIGH_INDEX_SH,"
+        "LOW_INDEX_SH,TOTAL_SZARES_SZ,TOTAL_MARKE_SZ,DEAL_AMOUNT_SZ,VOLUME_SZ,HIGH_INDEX_SZ,LOW_INDEX_SZ",
         "sortColumns": "REPORT_DATE",
         "sortTypes": "-1",
         "pageNumber": "1",
@@ -2687,18 +2232,30 @@ def macro_china_stock_market_cap() -> pd.DataFrame:
             "A股最低综合股价指数-深圳",
         ]
     ]
-    temp_df["发行总股本-上海"] = pd.to_numeric(temp_df["发行总股本-上海"], errors="coerce")
-    temp_df["发行总股本-深圳"] = pd.to_numeric(temp_df["发行总股本-深圳"], errors="coerce")
+    temp_df["发行总股本-上海"] = pd.to_numeric(
+        temp_df["发行总股本-上海"], errors="coerce"
+    )
+    temp_df["发行总股本-深圳"] = pd.to_numeric(
+        temp_df["发行总股本-深圳"], errors="coerce"
+    )
     temp_df["市价总值-上海"] = pd.to_numeric(temp_df["市价总值-上海"], errors="coerce")
     temp_df["市价总值-深圳"] = pd.to_numeric(temp_df["市价总值-深圳"], errors="coerce")
     temp_df["成交金额-上海"] = pd.to_numeric(temp_df["成交金额-上海"], errors="coerce")
     temp_df["成交金额-深圳"] = pd.to_numeric(temp_df["成交金额-深圳"], errors="coerce")
     temp_df["成交量-上海"] = pd.to_numeric(temp_df["成交量-上海"], errors="coerce")
     temp_df["成交量-深圳"] = pd.to_numeric(temp_df["成交量-深圳"], errors="coerce")
-    temp_df["A股最高综合股价指数-上海"] = pd.to_numeric(temp_df["A股最高综合股价指数-上海"], errors="coerce")
-    temp_df["A股最高综合股价指数-深圳"] = pd.to_numeric(temp_df["A股最高综合股价指数-深圳"], errors="coerce")
-    temp_df["A股最低综合股价指数-上海"] = pd.to_numeric(temp_df["A股最低综合股价指数-上海"], errors="coerce")
-    temp_df["A股最低综合股价指数-深圳"] = pd.to_numeric(temp_df["A股最低综合股价指数-深圳"], errors="coerce")
+    temp_df["A股最高综合股价指数-上海"] = pd.to_numeric(
+        temp_df["A股最高综合股价指数-上海"], errors="coerce"
+    )
+    temp_df["A股最高综合股价指数-深圳"] = pd.to_numeric(
+        temp_df["A股最高综合股价指数-深圳"], errors="coerce"
+    )
+    temp_df["A股最低综合股价指数-上海"] = pd.to_numeric(
+        temp_df["A股最低综合股价指数-上海"], errors="coerce"
+    )
+    temp_df["A股最低综合股价指数-深圳"] = pd.to_numeric(
+        temp_df["A股最低综合股价指数-深圳"], errors="coerce"
+    )
     return temp_df
 
 
@@ -2711,7 +2268,8 @@ def macro_china_money_supply() -> pd.DataFrame:
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     params = {
-        "columns": "REPORT_DATE,TIME,BASIC_CURRENCY,BASIC_CURRENCY_SAME,BASIC_CURRENCY_SEQUENTIAL,CURRENCY,CURRENCY_SAME,CURRENCY_SEQUENTIAL,FREE_CASH,FREE_CASH_SAME,FREE_CASH_SEQUENTIAL",
+        "columns": "REPORT_DATE,TIME,BASIC_CURRENCY,BASIC_CURRENCY_SAME,BASIC_CURRENCY_SEQUENTIAL,CURRENCY,"
+        "CURRENCY_SAME,CURRENCY_SEQUENTIAL,FREE_CASH,FREE_CASH_SAME,FREE_CASH_SEQUENTIAL",
         "pageNumber": "1",
         "pageSize": "2000",
         "sortColumns": "REPORT_DATE",
@@ -2755,15 +2313,33 @@ def macro_china_money_supply() -> pd.DataFrame:
         ]
     ]
 
-    temp_df["货币和准货币(M2)-数量(亿元)"] = pd.to_numeric(temp_df["货币和准货币(M2)-数量(亿元)"])
-    temp_df["货币和准货币(M2)-同比增长"] = pd.to_numeric(temp_df["货币和准货币(M2)-同比增长"])
-    temp_df["货币和准货币(M2)-环比增长"] = pd.to_numeric(temp_df["货币和准货币(M2)-环比增长"])
-    temp_df["货币(M1)-数量(亿元)"] = pd.to_numeric(temp_df["货币(M1)-数量(亿元)"])
-    temp_df["货币(M1)-同比增长"] = pd.to_numeric(temp_df["货币(M1)-同比增长"])
-    temp_df["货币(M1)-环比增长"] = pd.to_numeric(temp_df["货币(M1)-环比增长"])
-    temp_df["流通中的现金(M0)-数量(亿元)"] = pd.to_numeric(temp_df["流通中的现金(M0)-数量(亿元)"])
-    temp_df["流通中的现金(M0)-同比增长"] = pd.to_numeric(temp_df["流通中的现金(M0)-同比增长"])
-    temp_df["流通中的现金(M0)-环比增长"] = pd.to_numeric(temp_df["流通中的现金(M0)-环比增长"])
+    temp_df["货币和准货币(M2)-数量(亿元)"] = pd.to_numeric(
+        temp_df["货币和准货币(M2)-数量(亿元)"], errors="coerce"
+    )
+    temp_df["货币和准货币(M2)-同比增长"] = pd.to_numeric(
+        temp_df["货币和准货币(M2)-同比增长"], errors="coerce"
+    )
+    temp_df["货币和准货币(M2)-环比增长"] = pd.to_numeric(
+        temp_df["货币和准货币(M2)-环比增长"], errors="coerce"
+    )
+    temp_df["货币(M1)-数量(亿元)"] = pd.to_numeric(
+        temp_df["货币(M1)-数量(亿元)"], errors="coerce"
+    )
+    temp_df["货币(M1)-同比增长"] = pd.to_numeric(
+        temp_df["货币(M1)-同比增长"], errors="coerce"
+    )
+    temp_df["货币(M1)-环比增长"] = pd.to_numeric(
+        temp_df["货币(M1)-环比增长"], errors="coerce"
+    )
+    temp_df["流通中的现金(M0)-数量(亿元)"] = pd.to_numeric(
+        temp_df["流通中的现金(M0)-数量(亿元)"], errors="coerce"
+    )
+    temp_df["流通中的现金(M0)-同比增长"] = pd.to_numeric(
+        temp_df["流通中的现金(M0)-同比增长"], errors="coerce"
+    )
+    temp_df["流通中的现金(M0)-环比增长"] = pd.to_numeric(
+        temp_df["流通中的现金(M0)-环比增长"], errors="coerce"
+    )
     return temp_df
 
 
@@ -2776,7 +2352,9 @@ def macro_china_cpi() -> pd.DataFrame:
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     params = {
-        "columns": "REPORT_DATE,TIME,NATIONAL_SAME,NATIONAL_BASE,NATIONAL_SEQUENTIAL,NATIONAL_ACCUMULATE,CITY_SAME,CITY_BASE,CITY_SEQUENTIAL,CITY_ACCUMULATE,RURAL_SAME,RURAL_BASE,RURAL_SEQUENTIAL,RURAL_ACCUMULATE",
+        "columns": "REPORT_DATE,TIME,NATIONAL_SAME,NATIONAL_BASE,NATIONAL_SEQUENTIAL,NATIONAL_ACCUMULATE,"
+        "CITY_SAME,CITY_BASE,CITY_SEQUENTIAL,CITY_ACCUMULATE,RURAL_SAME,"
+        "RURAL_BASE,RURAL_SEQUENTIAL,RURAL_ACCUMULATE",
         "pageNumber": "1",
         "pageSize": "2000",
         "sortColumns": "REPORT_DATE",
@@ -2850,7 +2428,8 @@ def macro_china_gdp() -> pd.DataFrame:
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     params = {
-        "columns": "REPORT_DATE,TIME,DOMESTICL_PRODUCT_BASE,FIRST_PRODUCT_BASE,SECOND_PRODUCT_BASE,THIRD_PRODUCT_BASE,SUM_SAME,FIRST_SAME,SECOND_SAME,THIRD_SAME",
+        "columns": "REPORT_DATE,TIME,DOMESTICL_PRODUCT_BASE,FIRST_PRODUCT_BASE,SECOND_PRODUCT_BASE,"
+        "THIRD_PRODUCT_BASE,SUM_SAME,FIRST_SAME,SECOND_SAME,THIRD_SAME",
         "pageNumber": "1",
         "pageSize": "2000",
         "sortColumns": "REPORT_DATE",
@@ -2891,14 +2470,30 @@ def macro_china_gdp() -> pd.DataFrame:
             "第三产业-同比增长",
         ]
     ]
-    temp_df["国内生产总值-绝对值"] = pd.to_numeric(temp_df["国内生产总值-绝对值"], errors="coerce")
-    temp_df["国内生产总值-同比增长"] = pd.to_numeric(temp_df["国内生产总值-同比增长"], errors="coerce")
-    temp_df["第一产业-绝对值"] = pd.to_numeric(temp_df["第一产业-绝对值"], errors="coerce")
-    temp_df["第一产业-同比增长"] = pd.to_numeric(temp_df["第一产业-同比增长"], errors="coerce")
-    temp_df["第二产业-绝对值"] = pd.to_numeric(temp_df["第二产业-绝对值"], errors="coerce")
-    temp_df["第二产业-同比增长"] = pd.to_numeric(temp_df["第二产业-同比增长"], errors="coerce")
-    temp_df["第三产业-绝对值"] = pd.to_numeric(temp_df["第三产业-绝对值"], errors="coerce")
-    temp_df["第三产业-同比增长"] = pd.to_numeric(temp_df["第三产业-同比增长"], errors="coerce")
+    temp_df["国内生产总值-绝对值"] = pd.to_numeric(
+        temp_df["国内生产总值-绝对值"], errors="coerce"
+    )
+    temp_df["国内生产总值-同比增长"] = pd.to_numeric(
+        temp_df["国内生产总值-同比增长"], errors="coerce"
+    )
+    temp_df["第一产业-绝对值"] = pd.to_numeric(
+        temp_df["第一产业-绝对值"], errors="coerce"
+    )
+    temp_df["第一产业-同比增长"] = pd.to_numeric(
+        temp_df["第一产业-同比增长"], errors="coerce"
+    )
+    temp_df["第二产业-绝对值"] = pd.to_numeric(
+        temp_df["第二产业-绝对值"], errors="coerce"
+    )
+    temp_df["第二产业-同比增长"] = pd.to_numeric(
+        temp_df["第二产业-同比增长"], errors="coerce"
+    )
+    temp_df["第三产业-绝对值"] = pd.to_numeric(
+        temp_df["第三产业-绝对值"], errors="coerce"
+    )
+    temp_df["第三产业-同比增长"] = pd.to_numeric(
+        temp_df["第三产业-同比增长"], errors="coerce"
+    )
     return temp_df
 
 
@@ -2991,9 +2586,13 @@ def macro_china_pmi() -> pd.DataFrame:
         ]
     ]
     temp_df["制造业-指数"] = pd.to_numeric(temp_df["制造业-指数"], errors="coerce")
-    temp_df["制造业-同比增长"] = pd.to_numeric(temp_df["制造业-同比增长"], errors="coerce")
+    temp_df["制造业-同比增长"] = pd.to_numeric(
+        temp_df["制造业-同比增长"], errors="coerce"
+    )
     temp_df["非制造业-指数"] = pd.to_numeric(temp_df["非制造业-指数"], errors="coerce")
-    temp_df["非制造业-同比增长"] = pd.to_numeric(temp_df["非制造业-同比增长"], errors="coerce")
+    temp_df["非制造业-同比增长"] = pd.to_numeric(
+        temp_df["非制造业-同比增长"], errors="coerce"
+    )
     return temp_df
 
 
@@ -3056,7 +2655,9 @@ def macro_china_hgjck() -> pd.DataFrame:
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     params = {
-        "columns": "REPORT_DATE,TIME,EXIT_BASE,IMPORT_BASE,EXIT_BASE_SAME,IMPORT_BASE_SAME,EXIT_BASE_SEQUENTIAL,IMPORT_BASE_SEQUENTIAL,EXIT_ACCUMULATE,IMPORT_ACCUMULATE,EXIT_ACCUMULATE_SAME,IMPORT_ACCUMULATE_SAME",
+        "columns": "REPORT_DATE,TIME,EXIT_BASE,IMPORT_BASE,EXIT_BASE_SAME,IMPORT_BASE_SAME,"
+        "EXIT_BASE_SEQUENTIAL,IMPORT_BASE_SEQUENTIAL,EXIT_ACCUMULATE,"
+        "IMPORT_ACCUMULATE,EXIT_ACCUMULATE_SAME,IMPORT_ACCUMULATE_SAME",
         "pageNumber": "1",
         "pageSize": "2000",
         "sortColumns": "REPORT_DATE",
@@ -3104,16 +2705,36 @@ def macro_china_hgjck() -> pd.DataFrame:
             "累计进口额-同比增长",
         ]
     ]
-    temp_df["当月出口额-金额"] = pd.to_numeric(temp_df["当月出口额-金额"], errors="coerce")
-    temp_df["当月出口额-同比增长"] = pd.to_numeric(temp_df["当月出口额-同比增长"], errors="coerce")
-    temp_df["当月出口额-环比增长"] = pd.to_numeric(temp_df["当月出口额-环比增长"], errors="coerce")
-    temp_df["当月进口额-金额"] = pd.to_numeric(temp_df["当月进口额-金额"], errors="coerce")
-    temp_df["当月进口额-同比增长"] = pd.to_numeric(temp_df["当月进口额-同比增长"], errors="coerce")
-    temp_df["当月进口额-环比增长"] = pd.to_numeric(temp_df["当月进口额-环比增长"], errors="coerce")
-    temp_df["累计出口额-金额"] = pd.to_numeric(temp_df["累计出口额-金额"], errors="coerce")
-    temp_df["累计出口额-同比增长"] = pd.to_numeric(temp_df["累计出口额-同比增长"], errors="coerce")
-    temp_df["累计进口额-金额"] = pd.to_numeric(temp_df["累计进口额-金额"], errors="coerce")
-    temp_df["累计进口额-同比增长"] = pd.to_numeric(temp_df["累计进口额-同比增长"], errors="coerce")
+    temp_df["当月出口额-金额"] = pd.to_numeric(
+        temp_df["当月出口额-金额"], errors="coerce"
+    )
+    temp_df["当月出口额-同比增长"] = pd.to_numeric(
+        temp_df["当月出口额-同比增长"], errors="coerce"
+    )
+    temp_df["当月出口额-环比增长"] = pd.to_numeric(
+        temp_df["当月出口额-环比增长"], errors="coerce"
+    )
+    temp_df["当月进口额-金额"] = pd.to_numeric(
+        temp_df["当月进口额-金额"], errors="coerce"
+    )
+    temp_df["当月进口额-同比增长"] = pd.to_numeric(
+        temp_df["当月进口额-同比增长"], errors="coerce"
+    )
+    temp_df["当月进口额-环比增长"] = pd.to_numeric(
+        temp_df["当月进口额-环比增长"], errors="coerce"
+    )
+    temp_df["累计出口额-金额"] = pd.to_numeric(
+        temp_df["累计出口额-金额"], errors="coerce"
+    )
+    temp_df["累计出口额-同比增长"] = pd.to_numeric(
+        temp_df["累计出口额-同比增长"], errors="coerce"
+    )
+    temp_df["累计进口额-金额"] = pd.to_numeric(
+        temp_df["累计进口额-金额"], errors="coerce"
+    )
+    temp_df["累计进口额-同比增长"] = pd.to_numeric(
+        temp_df["累计进口额-同比增长"], errors="coerce"
+    )
     return temp_df
 
 
@@ -3326,15 +2947,33 @@ def macro_china_xfzxx() -> pd.DataFrame:
         ]
     ]
 
-    temp_df["消费者信心指数-指数值"] = pd.to_numeric(temp_df["消费者信心指数-指数值"], errors="coerce")
-    temp_df["消费者信心指数-同比增长"] = pd.to_numeric(temp_df["消费者信心指数-同比增长"], errors="coerce")
-    temp_df["消费者信心指数-环比增长"] = pd.to_numeric(temp_df["消费者信心指数-环比增长"], errors="coerce")
-    temp_df["消费者满意指数-指数值"] = pd.to_numeric(temp_df["消费者满意指数-指数值"], errors="coerce")
-    temp_df["消费者满意指数-同比增长"] = pd.to_numeric(temp_df["消费者满意指数-同比增长"], errors="coerce")
-    temp_df["消费者满意指数-环比增长"] = pd.to_numeric(temp_df["消费者满意指数-环比增长"], errors="coerce")
-    temp_df["消费者预期指数-指数值"] = pd.to_numeric(temp_df["消费者满意指数-指数值"], errors="coerce")
-    temp_df["消费者预期指数-同比增长"] = pd.to_numeric(temp_df["消费者预期指数-同比增长"], errors="coerce")
-    temp_df["消费者预期指数-环比增长"] = pd.to_numeric(temp_df["消费者预期指数-环比增长"], errors="coerce")
+    temp_df["消费者信心指数-指数值"] = pd.to_numeric(
+        temp_df["消费者信心指数-指数值"], errors="coerce"
+    )
+    temp_df["消费者信心指数-同比增长"] = pd.to_numeric(
+        temp_df["消费者信心指数-同比增长"], errors="coerce"
+    )
+    temp_df["消费者信心指数-环比增长"] = pd.to_numeric(
+        temp_df["消费者信心指数-环比增长"], errors="coerce"
+    )
+    temp_df["消费者满意指数-指数值"] = pd.to_numeric(
+        temp_df["消费者满意指数-指数值"], errors="coerce"
+    )
+    temp_df["消费者满意指数-同比增长"] = pd.to_numeric(
+        temp_df["消费者满意指数-同比增长"], errors="coerce"
+    )
+    temp_df["消费者满意指数-环比增长"] = pd.to_numeric(
+        temp_df["消费者满意指数-环比增长"], errors="coerce"
+    )
+    temp_df["消费者预期指数-指数值"] = pd.to_numeric(
+        temp_df["消费者满意指数-指数值"], errors="coerce"
+    )
+    temp_df["消费者预期指数-同比增长"] = pd.to_numeric(
+        temp_df["消费者预期指数-同比增长"], errors="coerce"
+    )
+    temp_df["消费者预期指数-环比增长"] = pd.to_numeric(
+        temp_df["消费者预期指数-环比增长"], errors="coerce"
+    )
     return temp_df
 
 
@@ -3347,38 +2986,40 @@ def macro_china_gyzjz() -> pd.DataFrame:
     """
     url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
     params = {
-        'columns': 'REPORT_DATE,TIME,BASE_SAME,BASE_ACCUMULATE',
-        'pageNumber': '1',
-        'pageSize': '2000',
-        'sortColumns': 'REPORT_DATE',
-        'sortTypes': '-1',
-        'source': 'WEB',
-        'client': 'WEB',
-        'reportName': 'RPT_ECONOMY_INDUS_GROW',
-        'p': '1',
-        'pageNo': '1',
-        'pageNum': '1',
-        '_': '1691676211803',
+        "columns": "REPORT_DATE,TIME,BASE_SAME,BASE_ACCUMULATE",
+        "pageNumber": "1",
+        "pageSize": "2000",
+        "sortColumns": "REPORT_DATE",
+        "sortTypes": "-1",
+        "source": "WEB",
+        "client": "WEB",
+        "reportName": "RPT_ECONOMY_INDUS_GROW",
+        "p": "1",
+        "pageNo": "1",
+        "pageNum": "1",
+        "_": "1691676211803",
     }
     r = requests.get(url, params=params)
     data_json = r.json()
-    temp_df = pd.DataFrame(data_json['result']['data'])
+    temp_df = pd.DataFrame(data_json["result"]["data"])
     temp_df.columns = [
         "发布时间",
         "月份",
         "同比增长",
         "累计增长",
     ]
-    temp_df = temp_df[[
-        "月份",
-        "同比增长",
-        "累计增长",
-        "发布时间",
-    ]]
+    temp_df = temp_df[
+        [
+            "月份",
+            "同比增长",
+            "累计增长",
+            "发布时间",
+        ]
+    ]
     temp_df["同比增长"] = pd.to_numeric(temp_df["同比增长"], errors="coerce")
     temp_df["累计增长"] = pd.to_numeric(temp_df["累计增长"], errors="coerce")
-    temp_df['发布时间'] = pd.to_datetime(temp_df['发布时间'], errors="coerce").dt.date
-    temp_df.sort_values(['发布时间'], ignore_index=True, inplace=True)
+    temp_df["发布时间"] = pd.to_datetime(temp_df["发布时间"], errors="coerce").dt.date
+    temp_df.sort_values(["发布时间"], ignore_index=True, inplace=True)
     return temp_df
 
 
@@ -3436,15 +3077,33 @@ def macro_china_reserve_requirement_ratio() -> pd.DataFrame:
             "备注",
         ]
     ]
-    temp_df["大型金融机构-调整前"] = pd.to_numeric(temp_df["大型金融机构-调整前"], errors="coerce")
-    temp_df["大型金融机构-调整后"] = pd.to_numeric(temp_df["大型金融机构-调整后"], errors="coerce")
-    temp_df["大型金融机构-调整幅度"] = pd.to_numeric(temp_df["大型金融机构-调整幅度"], errors="coerce")
-    temp_df["大型金融机构-调整前"] = pd.to_numeric(temp_df["大型金融机构-调整前"], errors="coerce")
-    temp_df["大型金融机构-调整后"] = pd.to_numeric(temp_df["大型金融机构-调整后"], errors="coerce")
-    temp_df["大型金融机构-调整幅度"] = pd.to_numeric(temp_df["大型金融机构-调整幅度"], errors="coerce")
-    temp_df["消息公布次日指数涨跌-上证"] = pd.to_numeric(temp_df["消息公布次日指数涨跌-上证"], errors="coerce")
-    temp_df["消息公布次日指数涨跌-深证"] = pd.to_numeric(temp_df["消息公布次日指数涨跌-深证"], errors="coerce")
-    temp_df["消息公布次日指数涨跌-深证"] = pd.to_numeric(temp_df["消息公布次日指数涨跌-深证"], errors="coerce")
+    temp_df["大型金融机构-调整前"] = pd.to_numeric(
+        temp_df["大型金融机构-调整前"], errors="coerce"
+    )
+    temp_df["大型金融机构-调整后"] = pd.to_numeric(
+        temp_df["大型金融机构-调整后"], errors="coerce"
+    )
+    temp_df["大型金融机构-调整幅度"] = pd.to_numeric(
+        temp_df["大型金融机构-调整幅度"], errors="coerce"
+    )
+    temp_df["大型金融机构-调整前"] = pd.to_numeric(
+        temp_df["大型金融机构-调整前"], errors="coerce"
+    )
+    temp_df["大型金融机构-调整后"] = pd.to_numeric(
+        temp_df["大型金融机构-调整后"], errors="coerce"
+    )
+    temp_df["大型金融机构-调整幅度"] = pd.to_numeric(
+        temp_df["大型金融机构-调整幅度"], errors="coerce"
+    )
+    temp_df["消息公布次日指数涨跌-上证"] = pd.to_numeric(
+        temp_df["消息公布次日指数涨跌-上证"], errors="coerce"
+    )
+    temp_df["消息公布次日指数涨跌-深证"] = pd.to_numeric(
+        temp_df["消息公布次日指数涨跌-深证"], errors="coerce"
+    )
+    temp_df["消息公布次日指数涨跌-深证"] = pd.to_numeric(
+        temp_df["消息公布次日指数涨跌-深证"], errors="coerce"
+    )
     return temp_df
 
 
@@ -3506,7 +3165,7 @@ def macro_china_consumer_goods_retail() -> pd.DataFrame:
 def macro_china_society_electricity() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-全社会用电分类情况表
-    http://finance.sina.com.cn/mac/#industry-6-0-31-1
+    https://finance.sina.com.cn/mac/#industry-6-0-31-1
     :return: 全社会用电分类情况表
     :rtype: pandas.DataFrame
     """
@@ -3521,14 +3180,14 @@ def macro_china_society_electricity() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
     for i in range(1, page_num):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
 
@@ -3551,13 +3210,16 @@ def macro_china_society_electricity() -> pd.DataFrame:
         "乡村居民用电量",
         "乡村居民用电量同比",
     ]
+    for item in big_df.columns[1:]:
+        big_df[item] = pd.to_numeric(big_df[item], errors="coerce")
+    big_df.sort_values(["统计时间"], inplace=True, ignore_index=True)
     return big_df
 
 
 def macro_china_society_traffic_volume() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-全社会客货运输量
-    http://finance.sina.com.cn/mac/#industry-10-0-31-1
+    https://finance.sina.com.cn/mac/#industry-10-0-31-1
     :return: 全社会客货运输量
     :rtype: pandas.DataFrame
     """
@@ -3572,38 +3234,50 @@ def macro_china_society_traffic_volume() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"]["非累计"])
     for i in tqdm(range(1, page_num), leave=False):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"]["非累计"])
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
-    big_df['货运量'] = pd.to_numeric(big_df['货运量'], errors="coerce")
-    big_df['货运量同比增长'] = pd.to_numeric(big_df['货运量同比增长'], errors="coerce")
-    big_df['货物周转量'] = pd.to_numeric(big_df['货物周转量'], errors="coerce")
-    big_df['公里货物周转量同比增长'] = pd.to_numeric(big_df['公里货物周转量同比增长'], errors="coerce")
-    big_df['客运量'] = pd.to_numeric(big_df['客运量'], errors="coerce")
-    big_df['客运量同比增长'] = pd.to_numeric(big_df['客运量同比增长'], errors="coerce")
-    big_df['旅客周转量'] = pd.to_numeric(big_df['旅客周转量'], errors="coerce")
-    big_df['公里旅客周转量同比增长'] = pd.to_numeric(big_df['公里旅客周转量同比增长'], errors="coerce")
-    big_df['沿海主要港口货物吞吐量'] = pd.to_numeric(big_df['沿海主要港口货物吞吐量'], errors="coerce")
-    big_df['沿海主要港口货物吞吐量同比增长'] = pd.to_numeric(big_df['沿海主要港口货物吞吐量同比增长'], errors="coerce")
-    big_df['其中:外贸货物吞吐量'] = pd.to_numeric(big_df['其中:外贸货物吞吐量'], errors="coerce")
-    big_df['其中:外贸货物吞吐量同比增长'] = pd.to_numeric(big_df['其中:外贸货物吞吐量同比增长'], errors="coerce")
-    big_df['民航总周转量'] = pd.to_numeric(big_df['民航总周转量'], errors="coerce")
-    big_df['公里民航总周转'] = pd.to_numeric(big_df['公里民航总周转'], errors="coerce")
+    big_df["货运量"] = pd.to_numeric(big_df["货运量"], errors="coerce")
+    big_df["货运量同比增长"] = pd.to_numeric(big_df["货运量同比增长"], errors="coerce")
+    big_df["货物周转量"] = pd.to_numeric(big_df["货物周转量"], errors="coerce")
+    big_df["公里货物周转量同比增长"] = pd.to_numeric(
+        big_df["公里货物周转量同比增长"], errors="coerce"
+    )
+    big_df["客运量"] = pd.to_numeric(big_df["客运量"], errors="coerce")
+    big_df["客运量同比增长"] = pd.to_numeric(big_df["客运量同比增长"], errors="coerce")
+    big_df["旅客周转量"] = pd.to_numeric(big_df["旅客周转量"], errors="coerce")
+    big_df["公里旅客周转量同比增长"] = pd.to_numeric(
+        big_df["公里旅客周转量同比增长"], errors="coerce"
+    )
+    big_df["沿海主要港口货物吞吐量"] = pd.to_numeric(
+        big_df["沿海主要港口货物吞吐量"], errors="coerce"
+    )
+    big_df["沿海主要港口货物吞吐量同比增长"] = pd.to_numeric(
+        big_df["沿海主要港口货物吞吐量同比增长"], errors="coerce"
+    )
+    big_df["其中:外贸货物吞吐量"] = pd.to_numeric(
+        big_df["其中:外贸货物吞吐量"], errors="coerce"
+    )
+    big_df["其中:外贸货物吞吐量同比增长"] = pd.to_numeric(
+        big_df["其中:外贸货物吞吐量同比增长"], errors="coerce"
+    )
+    big_df["民航总周转量"] = pd.to_numeric(big_df["民航总周转量"], errors="coerce")
+    big_df["公里民航总周转"] = pd.to_numeric(big_df["公里民航总周转"], errors="coerce")
     return big_df
 
 
 def macro_china_postal_telecommunicational() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-邮电业务基本情况
-    http://finance.sina.com.cn/mac/#industry-11-0-31-1
+    https://finance.sina.com.cn/mac/#industry-11-0-31-1
     :return: 邮电业务基本情况
     :rtype: pandas.DataFrame
     """
@@ -3618,14 +3292,14 @@ def macro_china_postal_telecommunicational() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"]["非累计"])
     for i in tqdm(range(1, page_num)):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"]["非累计"])
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
@@ -3637,7 +3311,7 @@ def macro_china_postal_telecommunicational() -> pd.DataFrame:
 def macro_china_international_tourism_fx() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-国际旅游外汇收入构成
-    http://finance.sina.com.cn/mac/#industry-15-0-31-3
+    https://finance.sina.com.cn/mac/#industry-15-0-31-3
     :return: 国际旅游外汇收入构成
     :rtype: pandas.DataFrame
     """
@@ -3652,26 +3326,26 @@ def macro_china_international_tourism_fx() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
     for i in tqdm(range(1, page_num)):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
-    big_df['数量'] = pd.to_numeric(big_df['数量'], errors="coerce")
-    big_df['比重'] = pd.to_numeric(big_df['比重'], errors="coerce")
+    big_df["数量"] = pd.to_numeric(big_df["数量"], errors="coerce")
+    big_df["比重"] = pd.to_numeric(big_df["比重"], errors="coerce")
     return big_df
 
 
 def macro_china_passenger_load_factor() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-民航客座率及载运率
-    http://finance.sina.com.cn/mac/#industry-20-0-31-1
+    https://finance.sina.com.cn/mac/#industry-20-0-31-1
     :return: 民航客座率及载运率
     :rtype: pandas.DataFrame
     """
@@ -3686,26 +3360,26 @@ def macro_china_passenger_load_factor() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
     for i in tqdm(range(1, page_num)):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
-    big_df['客座率'] = pd.to_numeric(big_df['客座率'], errors="coerce")
-    big_df['载运率'] = pd.to_numeric(big_df['载运率'], errors="coerce")
+    big_df["客座率"] = pd.to_numeric(big_df["客座率"], errors="coerce")
+    big_df["载运率"] = pd.to_numeric(big_df["载运率"], errors="coerce")
     return big_df
 
 
 def _macro_china_freight_index() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-航贸运价指数
-    http://finance.sina.com.cn/mac/#industry-22-0-31-2
+    https://finance.sina.com.cn/mac/#industry-22-0-31-2
     :return: 航贸运价指数
     :rtype: pandas.DataFrame
     """
@@ -3720,14 +3394,14 @@ def _macro_china_freight_index() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
     for i in tqdm(range(1, page_num)):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
         big_df = big_df.append(temp_df, ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
@@ -3737,7 +3411,7 @@ def _macro_china_freight_index() -> pd.DataFrame:
 def macro_china_freight_index() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-航贸运价指数
-    http://finance.sina.com.cn/mac/#industry-22-0-31-2
+    https://finance.sina.com.cn/mac/#industry-22-0-31-2
     :return: 航贸运价指数
     :rtype: pandas.DataFrame
     """
@@ -3759,20 +3433,30 @@ def macro_china_freight_index() -> pd.DataFrame:
         .dropna(axis=0)
         .iloc[:, :-1]
     )
-    big_df["波罗的海好望角型船运价指数BCI"] = pd.to_numeric(big_df["波罗的海好望角型船运价指数BCI"])
-    big_df["灵便型船综合运价指数BHMI"] = pd.to_numeric(big_df["灵便型船综合运价指数BHMI"])
-    big_df["波罗的海超级大灵便型船BSI指数"] = pd.to_numeric(big_df["波罗的海超级大灵便型船BSI指数"])
+    big_df["波罗的海好望角型船运价指数BCI"] = pd.to_numeric(
+        big_df["波罗的海好望角型船运价指数BCI"]
+    )
+    big_df["灵便型船综合运价指数BHMI"] = pd.to_numeric(
+        big_df["灵便型船综合运价指数BHMI"]
+    )
+    big_df["波罗的海超级大灵便型船BSI指数"] = pd.to_numeric(
+        big_df["波罗的海超级大灵便型船BSI指数"]
+    )
     big_df["波罗的海综合运价指数BDI"] = pd.to_numeric(big_df["波罗的海综合运价指数BDI"])
     big_df["HRCI国际集装箱租船指数"] = pd.to_numeric(big_df["HRCI国际集装箱租船指数"])
-    big_df["油轮运价指数成品油运价指数BCTI"] = pd.to_numeric(big_df["油轮运价指数成品油运价指数BCTI"])
-    big_df["油轮运价指数原油运价指数BDTI"] = pd.to_numeric(big_df["油轮运价指数原油运价指数BDTI"])
+    big_df["油轮运价指数成品油运价指数BCTI"] = pd.to_numeric(
+        big_df["油轮运价指数成品油运价指数BCTI"]
+    )
+    big_df["油轮运价指数原油运价指数BDTI"] = pd.to_numeric(
+        big_df["油轮运价指数原油运价指数BDTI"]
+    )
     return big_df
 
 
 def macro_china_central_bank_balance() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-央行货币当局资产负债
-    http://finance.sina.com.cn/mac/#fininfo-8-0-31-2
+    https://finance.sina.com.cn/mac/#fininfo-8-0-31-2
     :return: 央行货币当局资产负债
     :rtype: pandas.DataFrame
     """
@@ -3787,14 +3471,14 @@ def macro_china_central_bank_balance() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
     for i in tqdm(range(1, page_num)):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
@@ -3806,7 +3490,7 @@ def macro_china_central_bank_balance() -> pd.DataFrame:
 def macro_china_insurance() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-保险业经营情况
-    http://finance.sina.com.cn/mac/#fininfo-19-0-31-3
+    https://finance.sina.com.cn/mac/#fininfo-19-0-31-3
     :return: 保险业经营情况
     :rtype: pandas.DataFrame
     """
@@ -3821,14 +3505,14 @@ def macro_china_insurance() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
     for i in tqdm(range(1, page_num)):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
@@ -3840,7 +3524,7 @@ def macro_china_insurance() -> pd.DataFrame:
 def macro_china_supply_of_money() -> pd.DataFrame:
     """
     新浪财经-中国宏观经济数据-货币供应量
-    http://finance.sina.com.cn/mac/#fininfo-1-0-31-1
+    https://finance.sina.com.cn/mac/#fininfo-1-0-31-1
     :return: 货币供应量
     :rtype: pandas.DataFrame
     """
@@ -3855,14 +3539,14 @@ def macro_china_supply_of_money() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
     for i in tqdm(range(1, page_num)):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
@@ -3874,7 +3558,7 @@ def macro_china_supply_of_money() -> pd.DataFrame:
 def macro_china_foreign_exchange_gold() -> pd.DataFrame:
     """
     央行黄金和外汇储备
-    http://finance.sina.com.cn/mac/#fininfo-5-0-31-2
+    https://finance.sina.com.cn/mac/#fininfo-5-0-31-2
     :return: 央行黄金和外汇储备
     :rtype: pandas.DataFrame
     """
@@ -3889,24 +3573,27 @@ def macro_china_foreign_exchange_gold() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
-    for i in tqdm(range(1, page_num)):
+    for i in tqdm(range(1, page_num), leave=False):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
-        big_df = pd.concat([big_df, temp_df], ignore_index=True)
+        big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
+    big_df.sort_values(by=["统计时间"], ignore_index=True, inplace=True)
+    big_df["黄金储备"] = pd.to_numeric(big_df["黄金储备"], errors="coerce")
+    big_df["国家外汇储备"] = pd.to_numeric(big_df["国家外汇储备"], errors="coerce")
     return big_df
 
 
 def macro_china_retail_price_index() -> pd.DataFrame:
     """
     商品零售价格指数
-    http://finance.sina.com.cn/mac/#price-12-0-31-1
+    https://finance.sina.com.cn/mac/#price-12-0-31-1
     :return: 商品零售价格指数
     :rtype: pandas.DataFrame
     """
@@ -3921,24 +3608,28 @@ def macro_china_retail_price_index() -> pd.DataFrame:
     }
     r = requests.get(url, params=params)
     data_text = r.text
-    data_json = demjson.decode(data_text[data_text.find("{"): -3])
+    data_json = demjson.decode(data_text[data_text.find("{") : -3])
     page_num = math.ceil(int(data_json["count"]) / 31)
     big_df = pd.DataFrame(data_json["data"])
-    for i in tqdm(range(1, page_num)):
+    for i in tqdm(range(1, page_num), leave=False):
         params.update({"from": i * 31})
         r = requests.get(url, params=params)
         data_text = r.text
-        data_json = demjson.decode(data_text[data_text.find("{"): -3])
+        data_json = demjson.decode(data_text[data_text.find("{") : -3])
         temp_df = pd.DataFrame(data_json["data"])
-        big_df = pd.concat([big_df, temp_df], ignore_index=True)
+        big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
     big_df.columns = [item[1] for item in data_json["config"]["all"]]
+    big_df.sort_values(by=["统计月份"], ignore_index=True, inplace=True)
+    big_df["零售商品价格指数"] = pd.to_numeric(
+        big_df["零售商品价格指数"], errors="coerce"
+    )
     return big_df
 
 
 def macro_china_real_estate() -> pd.DataFrame:
     """
     国房景气指数
-    http://data.eastmoney.com/cjsj/hyzs_list_EMM00121987.html
+    https://data.eastmoney.com/cjsj/hyzs_list_EMM00121987.html
     :return: 国房景气指数
     :rtype: pandas.DataFrame
     """
