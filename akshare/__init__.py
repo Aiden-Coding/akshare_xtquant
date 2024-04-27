@@ -5233,3 +5233,6 @@ def call_function(func_name, argsdict):
 def call_function_no_args(func_name):
     func = globals()[func_name]
     return func()
+
+
+from akshare.stock_feature.stock_index_ths import stock_index_list_ths
