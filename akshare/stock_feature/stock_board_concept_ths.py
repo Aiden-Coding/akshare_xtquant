@@ -117,7 +117,8 @@ def stock_board_concept_name_ths() -> pd.DataFrame:
         temp_df = pd.read_html(StringIO(r.text))[0]
         temp_df["网址"] = url_list
         big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
-    big_df = big_df[["日期", "概念名称", "成分股数量", "网址"]]
+        break
+    big_df = big_df[["日期", "概念名称", "驱动事件", "成分股数量", "网址"]]
     big_df["日期"] = pd.to_datetime(big_df["日期"], errors="coerce").dt.date
     big_df["成分股数量"] = pd.to_numeric(big_df["成分股数量"], errors="coerce")
     big_df["代码"] = big_df["网址"].str.split("/", expand=True).iloc[:, 6]
@@ -143,6 +144,7 @@ def stock_board_concept_name_ths() -> pd.DataFrame:
     temp_df.columns = ["概念名称", "网址"]
     temp_df["日期"] = None
     temp_df["成分股数量"] = None
+    temp_df["驱动事件"] = None
     temp_df["代码"] = temp_df["网址"].str.split("/", expand=True).iloc[:, 6].tolist()
     temp_df = temp_df[["日期", "概念名称", "成分股数量", "网址", "代码"]]
     big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
@@ -415,8 +417,8 @@ def stock_board_cons_ths(symbol: str = "301558") -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    stock_board_concept_graph_ths_df = stock_board_concept_graph_ths(symbol="通用航空")
-    print(stock_board_concept_graph_ths_df)
+    # stock_board_concept_graph_ths_df = stock_board_concept_graph_ths(symbol="通用航空")
+    # print(stock_board_concept_graph_ths_df)
 
     stock_board_concept_name_ths_df = stock_board_concept_name_ths()
     print(stock_board_concept_name_ths_df)
