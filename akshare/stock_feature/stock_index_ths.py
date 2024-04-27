@@ -64,9 +64,26 @@ def stock_index_list_ths() -> pd.DataFrame:
         }
         url = f"https://q.10jqka.com.cn/zs/index/field/indexcode/order/asc/page/{page}/ajax/1/"
         r = requests.get(url, headers=headers)
+        soup = BeautifulSoup(r.text, features="lxml")
+        url_list = []
+        for item in (
+                soup.find(name="table", attrs={"class": "m-table m-pager-table"})
+                        .find("tbody")
+                        .find_all("tr")
+        ):
+            inner_url = item.find_all("td")[1].find("a")["href"]
+            if inner_url:
+                inner_url = str(inner_url)
+                split_string = inner_url.split("/")
+                last_part = split_string[-1]
+                if last_part == '':
+                    last_part = split_string[-2]
+                url_list.append(last_part)
+            else:
+                url_list.append(inner_url)
         temp_df = pd.read_html(StringIO(r.text))[0]
+        temp_df["ths_code"] = url_list
         big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
-        break
     if not big_df.empty:
         # 对指定列进行预处理，确保 0 不被去掉
         big_df['指数代码'] = big_df['指数代码'].astype(str).str.pad(width=6, side='left', fillchar='0')
@@ -84,6 +101,107 @@ def stock_index_list_ths() -> pd.DataFrame:
         "lowest_price",
         "volume_in_million_hands",
         "turnover_in_billion_yuan",
+        "ths_code",
+    ]
+    return big_df
+
+
+def stock_board_industry_index_ths(
+        symbol: str = "1A0001",
+        start_date: str = "20200101",
+        end_date: str = "20240108",
+) -> pd.DataFrame:
+    """
+    同花顺-板块-行业板块-指数数据
+    https://q.10jqka.com.cn/gn/detail/code/301558/
+    :param start_date: 开始时间
+    :type start_date: str
+    :param end_date: 结束时间
+    :type end_date: str
+    :param symbol: 指数数据
+    :type symbol: str
+    :return: 指数数据
+    :rtype: pandas.DataFrame
+    """
+    big_df = pd.DataFrame()
+    current_year = int(end_date[:4])
+    begin_year = int(start_date[:4])
+    for year in tqdm(range(begin_year, current_year + 1), leave=False):
+        url = f"http://d.10jqka.com.cn/v4/line/zs_{symbol}/01/{year}.js"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36",
+            "Referer": "http://q.10jqka.com.cn",
+            "Host": "d.10jqka.com.cn",
+        }
+        r = requests.get(url, headers=headers)
+        data_text = r.text
+        try:
+            demjson.decode(data_text[data_text.find("{"): -1])
+        except:
+            continue
+        temp_df = demjson.decode(data_text[data_text.find("{"): -1])
+        temp_df = pd.DataFrame(temp_df["data"].split(";"))
+        temp_df = temp_df.iloc[:, 0].str.split(",", expand=True)
+        big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
+
+    if len(big_df.columns) == 11:
+        big_df.columns = [
+            "日期",
+            "开盘价",
+            "最高价",
+            "最低价",
+            "收盘价",
+            "成交量",
+            "成交额",
+            "_",
+            "_",
+            "_",
+            "_",
+        ]
+    else:
+        big_df.columns = [
+            "日期",
+            "开盘价",
+            "最高价",
+            "最低价",
+            "收盘价",
+            "成交量",
+            "成交额",
+            "_",
+            "_",
+            "_",
+            "_",
+            "_",
+        ]
+    big_df = big_df[
+        [
+            "日期",
+            "开盘价",
+            "最高价",
+            "最低价",
+            "收盘价",
+            "成交量",
+            "成交额",
+        ]
+    ]
+    big_df["日期"] = pd.to_datetime(big_df["日期"], errors="coerce").dt.date
+    big_df.index = pd.to_datetime(big_df["日期"], errors="coerce")
+    big_df = big_df[start_date:end_date]
+    big_df.reset_index(drop=True, inplace=True)
+    big_df["开盘价"] = pd.to_numeric(big_df["开盘价"], errors="coerce")
+    big_df["最高价"] = pd.to_numeric(big_df["最高价"], errors="coerce")
+    big_df["最低价"] = pd.to_numeric(big_df["最低价"], errors="coerce")
+    big_df["收盘价"] = pd.to_numeric(big_df["收盘价"], errors="coerce")
+    big_df["成交量"] = pd.to_numeric(big_df["成交量"], errors="coerce")
+    big_df["成交额"] = pd.to_numeric(big_df["成交额"], errors="coerce")
+    big_df.columns = [
+        "日期",
+        "开盘",
+        "最高",
+        "最低",
+        "收盘",
+        "成交量",
+        "成交额",
     ]
     return big_df
 
