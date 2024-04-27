@@ -38,7 +38,7 @@ def stock_board_concept_graph_ths(symbol: str = "通用航空") -> pd.DataFrame:
     url = f"https://q.10jqka.com.cn/gn/detail/code/{symbol}"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/89.0.4389.90 Safari/537.36",
+                      "Chrome/89.0.4389.90 Safari/537.36",
     }
     r = requests.get(url, headers=headers)
     temp_df = pd.read_html(StringIO(r.text))[0]
@@ -86,7 +86,7 @@ def stock_board_concept_name_ths() -> pd.DataFrame:
     v_code = js_code.call("v")
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/89.0.4389.90 Safari/537.36",
+                      "Chrome/89.0.4389.90 Safari/537.36",
         "Cookie": f"v={v_code}",
     }
     r = requests.get(url, headers=headers)
@@ -101,16 +101,16 @@ def stock_board_concept_name_ths() -> pd.DataFrame:
         v_code = js_code.call("v")
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/89.0.4389.90 Safari/537.36",
+                          "Chrome/89.0.4389.90 Safari/537.36",
             "Cookie": f"v={v_code}",
         }
         r = requests.get(url, headers=headers)
         soup = BeautifulSoup(r.text, features="lxml")
         url_list = []
         for item in (
-            soup.find(name="table", attrs={"class": "m-table m-pager-table"})
-            .find("tbody")
-            .find_all("tr")
+                soup.find(name="table", attrs={"class": "m-table m-pager-table"})
+                        .find("tbody")
+                        .find_all("tr")
         ):
             inner_url = item.find_all("td")[1].find("a")["href"]
             url_list.append(inner_url)
@@ -190,7 +190,7 @@ def stock_board_concept_cons_ths(symbol: str = "小米概念") -> pd.DataFrame:
     v_code = js_code.call("v")
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/89.0.4389.90 Safari/537.36",
+                      "Chrome/89.0.4389.90 Safari/537.36",
         "Cookie": f"v={v_code}",
     }
     url = f"https://q.10jqka.com.cn/gn/detail/field/264648/order/desc/page/1/ajax/1/code/{symbol}"
@@ -207,7 +207,62 @@ def stock_board_concept_cons_ths(symbol: str = "小米概念") -> pd.DataFrame:
         v_code = js_code.call("v")
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/89.0.4389.90 Safari/537.36",
+                          "Chrome/89.0.4389.90 Safari/537.36",
+            "Cookie": f"v={v_code}",
+        }
+        url = f"https://q.10jqka.com.cn/gn/detail/field/264648/order/desc/page/{page}/ajax/1/code/{symbol}"
+        r = requests.get(url, headers=headers)
+        temp_df = pd.read_html(StringIO(r.text))[0]
+        big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
+    big_df.rename(
+        mapper={
+            "涨跌幅(%)": "涨跌幅",
+            "涨速(%)": "涨速",
+            "换手(%)": "换手",
+            "振幅(%)": "振幅",
+        },
+        inplace=True,
+        axis=1,
+    )
+    del big_df["加自选"]
+    big_df["代码"] = big_df["代码"].astype(str).str.zfill(6)
+    big_df = big_df[big_df["代码"] != "暂无成份股数据"]
+    return big_df
+
+
+def stock_board_concept_cons_code_ths(symbol: str = "301558") -> pd.DataFrame:
+    """
+    同花顺-板块-概念板块-成份股
+    https://q.10jqka.com.cn/gn/detail/code/301558/
+    :param symbol: 板块名称
+    :type symbol: str
+    :return: 成份股
+    :rtype: pandas.DataFrame
+    """
+    js_code = py_mini_racer.MiniRacer()
+    js_content = _get_file_content_ths("ths.js")
+    js_code.eval(js_content)
+    v_code = js_code.call("v")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/89.0.4389.90 Safari/537.36",
+        "Cookie": f"v={v_code}",
+    }
+    url = f"https://q.10jqka.com.cn/gn/detail/field/264648/order/desc/page/1/ajax/1/code/{symbol}"
+    r = requests.get(url, headers=headers)
+    soup = BeautifulSoup(r.text, features="lxml")
+    try:
+        page_num = int(
+            soup.find_all(name="a", attrs={"class": "changePage"})[-1]["page"]
+        )
+    except IndexError:
+        page_num = 1
+    big_df = pd.DataFrame()
+    for page in tqdm(range(1, page_num + 1), leave=False):
+        v_code = js_code.call("v")
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/89.0.4389.90 Safari/537.36",
             "Cookie": f"v={v_code}",
         }
         url = f"https://q.10jqka.com.cn/gn/detail/field/264648/order/desc/page/{page}/ajax/1/code/{symbol}"
@@ -248,7 +303,36 @@ def stock_board_concept_info_ths(symbol: str = "阿里巴巴概念") -> pd.DataF
     url = f"https://q.10jqka.com.cn/gn/detail/code/{symbol_code}/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/89.0.4389.90 Safari/537.36",
+                      "Chrome/89.0.4389.90 Safari/537.36",
+    }
+    r = requests.get(url, headers=headers)
+    soup = BeautifulSoup(r.text, features="lxml")
+    name_list = [
+        item.text
+        for item in soup.find(name="div", attrs={"class": "board-infos"}).find_all("dt")
+    ]
+    value_list = [
+        item.text.strip().replace("\n", "/")
+        for item in soup.find(name="div", attrs={"class": "board-infos"}).find_all("dd")
+    ]
+    temp_df = pd.DataFrame([name_list, value_list]).T
+    temp_df.columns = ["项目", "值"]
+    return temp_df
+
+
+def stock_board_concept_info_code_ths(symbol: str = "301558") -> pd.DataFrame:
+    """
+    同花顺-板块-概念板块-板块简介
+    https://q.10jqka.com.cn/gn/detail/code/301558/
+    :param symbol: 板块简介
+    :type symbol: str
+    :return: 板块简介
+    :rtype: pandas.DataFrame
+    """
+    url = f"https://q.10jqka.com.cn/gn/detail/code/{symbol_code}/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/89.0.4389.90 Safari/537.36",
     }
     r = requests.get(url, headers=headers)
     soup = BeautifulSoup(r.text, features="lxml")
@@ -266,7 +350,7 @@ def stock_board_concept_info_ths(symbol: str = "阿里巴巴概念") -> pd.DataF
 
 
 def stock_board_concept_hist_ths(
-    start_year: str = "2000", symbol: str = "安防"
+        start_year: str = "2000", symbol: str = "安防"
 ) -> pd.DataFrame:
     """
     同花顺-板块-概念板块-指数数据
@@ -282,7 +366,7 @@ def stock_board_concept_hist_ths(
     symbol_url = f"https://q.10jqka.com.cn/gn/detail/code/{code_map[symbol]}/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/89.0.4389.90 Safari/537.36",
+                      "Chrome/89.0.4389.90 Safari/537.36",
     }
     r = requests.get(symbol_url, headers=headers)
     soup = BeautifulSoup(r.text, "lxml")
@@ -293,17 +377,100 @@ def stock_board_concept_hist_ths(
         url = f"https://d.10jqka.com.cn/v4/line/bk_{symbol_code}/01/{year}.js"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/89.0.4389.90 Safari/537.36",
+                          "Chrome/89.0.4389.90 Safari/537.36",
             "Referer": "https://q.10jqka.com.cn",
             "Host": "d.10jqka.com.cn",
         }
         r = requests.get(url, headers=headers)
         data_text = r.text
         try:
-            demjson.decode(data_text[data_text.find("{") : -1])
+            demjson.decode(data_text[data_text.find("{"): -1])
         except:  # noqa: E722
             continue
-        temp_df = demjson.decode(data_text[data_text.find("{") : -1])
+        temp_df = demjson.decode(data_text[data_text.find("{"): -1])
+        temp_df = pd.DataFrame(temp_df["data"].split(";"))
+        temp_df = temp_df.iloc[:, 0].str.split(",", expand=True)
+        big_df = pd.concat([big_df, temp_df], ignore_index=True)
+    if big_df.columns.shape[0] == 12:
+        big_df.columns = [
+            "日期",
+            "开盘价",
+            "最高价",
+            "最低价",
+            "收盘价",
+            "成交量",
+            "成交额",
+            "_",
+            "_",
+            "_",
+            "_",
+            "_",
+        ]
+    else:
+        big_df.columns = [
+            "日期",
+            "开盘价",
+            "最高价",
+            "最低价",
+            "收盘价",
+            "成交量",
+            "成交额",
+            "_",
+            "_",
+            "_",
+            "_",
+        ]
+    big_df = big_df[
+        [
+            "日期",
+            "开盘价",
+            "最高价",
+            "最低价",
+            "收盘价",
+            "成交量",
+            "成交额",
+        ]
+    ]
+    big_df["日期"] = pd.to_datetime(big_df["日期"], errors="coerce").dt.date
+    big_df["开盘价"] = pd.to_numeric(big_df["开盘价"], errors="coerce")
+    big_df["最高价"] = pd.to_numeric(big_df["最高价"], errors="coerce")
+    big_df["最低价"] = pd.to_numeric(big_df["最低价"], errors="coerce")
+    big_df["收盘价"] = pd.to_numeric(big_df["收盘价"], errors="coerce")
+    big_df["成交量"] = pd.to_numeric(big_df["成交量"], errors="coerce")
+    big_df["成交额"] = pd.to_numeric(big_df["成交额"], errors="coerce")
+    return big_df
+
+
+def stock_board_concept_hist_code_ths(
+        start_year: str = "2000", symbol: str = "886076"
+) -> pd.DataFrame:
+    """
+    同花顺-板块-概念板块-指数数据
+    https://q.10jqka.com.cn/gn/detail/code/301558/
+    :param start_year: 开始年份; e.g., 2019
+    :type start_year: str
+    :param symbol: 板块简介
+    :type symbol: str
+    :return: 板块简介
+    :rtype: pandas.DataFrame
+    """
+    big_df = pd.DataFrame()
+    current_year = datetime.now().year
+    for year in tqdm(range(int(start_year), current_year + 1), leave=False):
+        url = f"https://d.10jqka.com.cn/v4/line/bk_{symbol}/01/{year}.js"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/89.0.4389.90 Safari/537.36",
+            "Referer": "https://q.10jqka.com.cn",
+            "Host": "d.10jqka.com.cn",
+        }
+        r = requests.get(url, headers=headers)
+        data_text = r.text
+        try:
+            demjson.decode(data_text[data_text.find("{"): -1])
+        except:  # noqa: E722
+            continue
+        temp_df = demjson.decode(data_text[data_text.find("{"): -1])
         temp_df = pd.DataFrame(temp_df["data"].split(";"))
         temp_df = temp_df.iloc[:, 0].str.split(",", expand=True)
         big_df = pd.concat([big_df, temp_df], ignore_index=True)
@@ -373,7 +540,7 @@ def stock_board_cons_ths(symbol: str = "301558") -> pd.DataFrame:
     v_code = js_code.call("v")
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/89.0.4389.90 Safari/537.36",
+                      "Chrome/89.0.4389.90 Safari/537.36",
         "Cookie": f"v={v_code}",
     }
     url = f"https://q.10jqka.com.cn/thshy/detail/field/199112/order/desc/page/1/ajax/1/code/{symbol}"
@@ -394,7 +561,7 @@ def stock_board_cons_ths(symbol: str = "301558") -> pd.DataFrame:
         v_code = js_code.call("v")
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/89.0.4389.90 Safari/537.36",
+                          "Chrome/89.0.4389.90 Safari/537.36",
             "Cookie": f"v={v_code}",
         }
         url = f"https://q.10jqka.com.cn/{url_flag}/detail/field/199112/order/desc/page/{page}/ajax/1/code/{symbol}"

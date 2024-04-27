@@ -3945,6 +3945,9 @@ from akshare.stock_feature.stock_board_concept_ths import (
     stock_board_concept_hist_ths,
     stock_board_concept_graph_ths,
     stock_board_cons_ths,
+    stock_board_concept_cons_code_ths,
+    stock_board_concept_info_code_ths,
+    stock_board_concept_hist_code_ths,
 )
 
 """
