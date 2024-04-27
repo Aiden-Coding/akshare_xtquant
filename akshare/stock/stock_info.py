@@ -63,6 +63,15 @@ def stock_info_sz_name_code(symbol: str = "A股列表") -> pd.DataFrame:
                     "所属行业",
                 ]
             ]
+            temp_df.columns = [
+                "sector",
+                "code",
+                "name",
+                "listing_date",
+                "total_shares",
+                "tradable_shares",
+                "industry",
+            ]
         elif symbol == "B股列表":
             temp_df["B股代码"] = (
                 temp_df["B股代码"]
@@ -173,6 +182,13 @@ def stock_info_sh_name_code(symbol: str = "主板A股") -> pd.DataFrame:
         ]
     ]
     temp_df["上市日期"] = pd.to_datetime(temp_df["上市日期"], errors="coerce").dt.date
+
+    temp_df.columns = [
+        "code",
+        "name",
+        "full_name",
+        "listing_date",
+        ]
     return temp_df
 
 
