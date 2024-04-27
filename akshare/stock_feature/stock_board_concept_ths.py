@@ -329,7 +329,7 @@ def stock_board_concept_info_code_ths(symbol: str = "301558") -> pd.DataFrame:
     :return: 板块简介
     :rtype: pandas.DataFrame
     """
-    url = f"https://q.10jqka.com.cn/gn/detail/code/{symbol_code}/"
+    url = f"https://q.10jqka.com.cn/gn/detail/code/{symbol}/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                       "Chrome/89.0.4389.90 Safari/537.36",
@@ -442,7 +442,9 @@ def stock_board_concept_hist_ths(
 
 
 def stock_board_concept_hist_code_ths(
-        start_year: str = "2000", symbol: str = "886076"
+        symbol: str = "1A0001",
+        start_date: str = "20200101",
+        end_date: str = "20240108"
 ) -> pd.DataFrame:
     """
     同花顺-板块-概念板块-指数数据
@@ -453,10 +455,16 @@ def stock_board_concept_hist_code_ths(
     :type symbol: str
     :return: 板块简介
     :rtype: pandas.DataFrame
+
+    Parameters
+    ----------
+    end_date
+    start_date
     """
     big_df = pd.DataFrame()
-    current_year = datetime.now().year
-    for year in tqdm(range(int(start_year), current_year + 1), leave=False):
+    current_year = int(end_date[:4])
+    begin_year = int(start_date[:4])
+    for year in tqdm(range(int(begin_year), current_year + 1), leave=False):
         url = f"https://d.10jqka.com.cn/v4/line/bk_{symbol}/01/{year}.js"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
