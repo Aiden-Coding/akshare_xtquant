@@ -6,8 +6,26 @@ import pandas as pd
 import requests
 from sanic import Blueprint, response
 from xtquant import xtdata, xtconstant
+import traceback
+import json
+from kafka3 import KafkaProducer
+import uuid
 
 xtDataApi = Blueprint("xtDataApi", url_prefix="/data")
+producer = KafkaProducer(
+    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+    bootstrap_servers=['localhost:9093']
+)
+
+
+def on_data(datas):
+    uuid1 = uuid.uuid1()
+    producer.send('add_topic', datas)
+
+
+codeList = ["000001.SZ"]
+subscribe_ids = []
+subscribe_ids.append(xtdata.subscribe_whole_quote(codeList, callback=on_data))
 
 
 @xtDataApi.listener('before_server_start')
@@ -19,7 +37,7 @@ async def before_server_start(app, loop):
     global session, subscribe_ids, trader, channel
     # jar = aiohttp.CookieJar(unsafe=True)
     # session = aiohttp.ClientSession(cookie_jar=jar, connector=aiohttp.TCPConnector(ssl=False))
-    # subscribe_ids = []
+
     # codeList = []
     # market = {'深市A': 'SZ', '沪市A': 'SH', '北交': 'BJ'}
     # for x in data['data']:
@@ -31,13 +49,6 @@ async def before_server_start(app, loop):
     #     codeList.append(code)
     # channel = rabbitmq_connection.channel()
     # channel.exchange_declare(exchange='交换机', exchange_type='fanout')
-    # subscribe_ids.append(xtdata.subscribe_whole_quote(codeList, callback=on_data))
-
-
-def on_data(datas):
-    for stock_code in datas:
-        # channel.basic_publish(exchange='交换机', routing_key='', body=json.loads(datas[stock_code]))
-        print(stock_code, datas[stock_code])
 
 
 @xtDataApi.listener('after_server_stop')
@@ -118,4 +129,3 @@ async def d(request):
         period='northfinancechange1d'
     )
     print(data)
-
