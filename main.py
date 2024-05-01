@@ -18,7 +18,8 @@ producer = None
 if enable_kafka:
     producer = KafkaProducer(
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-        bootstrap_servers=['localhost:9093']
+        bootstrap_servers=['localhost:9093'],
+        max_request_size=10485760
     )
 app = Sanic("ak_share")
 if enable_redis:
@@ -42,7 +43,7 @@ app.blueprint(akshare_api)
 
 def on_data(datas):
     if producer is not None:
-        producer.send('add_topic', datas)
+        producer.send('stock_subscribe', datas)
 
 
 @app.main_process_start
