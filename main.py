@@ -1,54 +1,81 @@
 # -*- coding:utf-8 -*-
+import json
+
+from kafka3 import KafkaProducer
 from sanic import Sanic, empty
 from utils import redis_util
 
 from api.akshare import akshare_api
-from config import enable_redis
+from config import enable_redis, enable_kafka
 from config import enable_rabbitmq
 from config import enable_xtquant
 
+if enable_xtquant:
+    from api.xtdata import xtDataApi
+    from xtquant import xtdata
+
+producer = None
+if enable_kafka:
+    producer = KafkaProducer(
+        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+        bootstrap_servers=['localhost:9093']
+    )
 app = Sanic("ak_share")
 if enable_redis:
     from middle.redis_config import redis_client
+
     app.ctx.redis_client = redis_client
 
 if enable_rabbitmq:
     from middle.rabbitmq_config import rabbitmq_connection
+
     app.ctx.rabbitmq_connection = rabbitmq_connection
 
 if enable_xtquant:
     from api.account import account_api
-    from api.xtdata import xtDataApi
+
     app.blueprint(xtDataApi)
     app.blueprint(account_api)
-
 
 app.blueprint(akshare_api)
 
 
+def on_data(datas):
+    if producer is not None:
+        producer.send('add_topic', datas)
+
+
 @app.main_process_start
 async def main_process_start(app, loop):
-    print("listener_1")
+    if enable_xtquant:
+        xtdata.enable_hello = False
+        code_list = xtdata.get_stock_list_in_sector('沪深A股')
+        subscribe_ids = [xtdata.subscribe_whole_quote(code_list, callback=on_data)]
+        app.ctx.subscribe_ids = subscribe_ids
 
 
 @app.main_process_stop
 async def main_process_stop(app, loop):
-    redis_client = app.ctx.redis_client
-    rabbitmq_connection = app.ctx.rabbitmq_connection
-    if redis_client is not None:
-        try:
-            # 可能引发异常的代码块
-            redis_client.close()
-        except Exception as e:
-            # 处理异常的代码块
-            print("捕获到零除异常:", e)
-    if rabbitmq_connection is not None:
-        try:
-            # 可能引发异常的代码块
-            rabbitmq_connection.close()
-        except Exception as e:
-            # 处理异常的代码块
-            print("捕获到零除异常:", e)
+    if hasattr(app.ctx, 'subscribe_ids'):
+        if app.ctx.subscribe_ids:
+            for i in app.ctx.subscribe_ids:
+                xtdata.unsubscribe_quote(i)
+    if hasattr(app.ctx, 'redis_client'):
+        if redis_client is not None:
+            try:
+                # 可能引发异常的代码块
+                redis_client.close()
+            except Exception as e:
+                # 处理异常的代码块
+                print("捕获到零除异常:", e)
+    if hasattr(app.ctx, 'rabbitmq_connection'):
+        if rabbitmq_connection is not None:
+            try:
+                # 可能引发异常的代码块
+                rabbitmq_connection.close()
+            except Exception as e:
+                # 处理异常的代码块
+                print("捕获到零除异常:", e)
 
 
 @app.route("/", methods=["GET"])

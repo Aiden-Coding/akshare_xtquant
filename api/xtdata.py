@@ -1,81 +1,11 @@
-import datetime
-import json
-
 # import aiohttp
 import pandas as pd
-import requests
 from sanic import Blueprint, response
-from xtquant import xtdata, xtconstant
-import traceback
-import json
-from kafka3 import KafkaProducer
-import uuid
+from xtquant import xtdata
+
+xtdata.enable_hello = False
 
 xtDataApi = Blueprint("xtDataApi", url_prefix="/data")
-producer = KafkaProducer(
-    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-    bootstrap_servers=['localhost:9093']
-)
-
-
-def on_data(datas):
-    uuid1 = uuid.uuid1()
-    producer.send('add_topic', datas)
-
-
-codeList = ["000001.SZ"]
-subscribe_ids = []
-subscribe_ids.append(xtdata.subscribe_whole_quote(codeList, callback=on_data))
-
-
-@xtDataApi.listener('before_server_start')
-async def before_server_start(app, loop):
-    '''全局共享session'''
-    # url = 'http://localhost:8022/common/listStock'
-    # response = requests.get(url)
-    # data = json.loads(response.text)
-    global session, subscribe_ids, trader, channel
-    # jar = aiohttp.CookieJar(unsafe=True)
-    # session = aiohttp.ClientSession(cookie_jar=jar, connector=aiohttp.TCPConnector(ssl=False))
-
-    # codeList = []
-    # market = {'深市A': 'SZ', '沪市A': 'SH', '北交': 'BJ'}
-    # for x in data['data']:
-    #     if x['market'] == '北交':
-    #         continue
-    #     if x['market'] == '其他A股':
-    #         continue
-    #     code = x['code'] + '.' + market[x['market']]
-    #     codeList.append(code)
-    # channel = rabbitmq_connection.channel()
-    # channel.exchange_declare(exchange='交换机', exchange_type='fanout')
-
-
-@xtDataApi.listener('after_server_stop')
-async def after_server_stop(app, loop):
-    '''关闭session'''
-    for seq_num in subscribe_ids:
-        xtdata.unsubscribe_quote(seq_num)
-    await session.close()
-
-
-@xtDataApi.route('/subscribe', methods=['GET'])
-async def subscribe(request, ticker_input=''):
-    '''
-    订阅单股行情: 获得tick/kline行情
-    '''
-    if ticker_input == '':
-        ticker = request.args.get("ticker", "000001.SH")
-    else:
-        ticker = ticker_input
-    period = request.args.get("period", "1m")
-    start_time = request.args.get("start_time", "")
-    end_time = request.args.get("end_time", "")
-    subscribe_ids.append(xtdata.subscribe_quote(ticker, period, start_time=start_time, end_time=end_time, count=10))
-    if ticker_input == '':
-        return response.json({"data": subscribe_ids[-1]})
-    else:
-        return {"data": subscribe_ids[-1]}
 
 
 @xtDataApi.route('/quote/kline', methods=['GET'])
