@@ -18,11 +18,11 @@ if enable_rabbitmq:
 
 if enable_xtquant:
     from api.account import account_api
+    from api.xtdata import xtDataApi
+    app.blueprint(xtDataApi)
     app.blueprint(account_api)
 
-from api.xtdata import xtDataApi
 
-app.blueprint(xtDataApi)
 app.blueprint(akshare_api)
 
 
