@@ -16,3 +16,4 @@ akracer>=0.0.11
 bottleneck>=1.3.6
 sanic>=23.6.0
 xtquant>=240329.1.1
+kafka-python3>=3.0.0

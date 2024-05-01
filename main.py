@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import json
 
-from kafka3 import KafkaProducer
+
 from sanic import Sanic, empty
 from utils import redis_util
 
@@ -16,6 +16,7 @@ if enable_xtquant:
 
 producer = None
 if enable_kafka:
+    from kafka3 import KafkaProducer
     producer = KafkaProducer(
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
         bootstrap_servers=['localhost:9093'],
