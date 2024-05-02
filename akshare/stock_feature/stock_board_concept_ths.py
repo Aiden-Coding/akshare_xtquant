@@ -107,18 +107,26 @@ def stock_board_concept_name_ths() -> pd.DataFrame:
         r = requests.get(url, headers=headers)
         soup = BeautifulSoup(r.text, features="lxml")
         url_list = []
+        url_list2 = []
         for item in (
                 soup.find(name="table", attrs={"class": "m-table m-pager-table"})
                         .find("tbody")
                         .find_all("tr")
         ):
-            inner_url = item.find_all("td")[1].find("a")["href"]
+            tds = item.find_all("td")
+            inner_url = tds[1].find("a")["href"]
+            inner_url2 = tds[2].find("a")
+            if inner_url2:
+                inner_url2 = inner_url2["href"]
+            else:
+                inner_url2 = ''
             url_list.append(inner_url)
+            url_list2.append(inner_url2)
         temp_df = pd.read_html(StringIO(r.text))[0]
         temp_df["网址"] = url_list
+        temp_df["驱动事件网址"] = url_list2
         big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
-        break
-    big_df = big_df[["日期", "概念名称", "驱动事件", "成分股数量", "网址"]]
+    big_df = big_df[["日期", "概念名称", "驱动事件", "成分股数量", "网址", "驱动事件网址"]]
     big_df["日期"] = pd.to_datetime(big_df["日期"], errors="coerce").dt.date
     big_df["成分股数量"] = pd.to_numeric(big_df["成分股数量"], errors="coerce")
     big_df["代码"] = big_df["网址"].str.split("/", expand=True).iloc[:, 6]
@@ -145,8 +153,9 @@ def stock_board_concept_name_ths() -> pd.DataFrame:
     temp_df["日期"] = None
     temp_df["成分股数量"] = None
     temp_df["驱动事件"] = None
+    temp_df["驱动事件网址"] = None
     temp_df["代码"] = temp_df["网址"].str.split("/", expand=True).iloc[:, 6].tolist()
-    temp_df = temp_df[["日期", "概念名称", "成分股数量", "网址", "代码"]]
+    temp_df = temp_df[["日期", "概念名称", "驱动事件", "成分股数量", "网址", "驱动事件网址", "代码"]]
     big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
     big_df.drop_duplicates(subset=["概念名称"], keep="first", inplace=True)
     return big_df
