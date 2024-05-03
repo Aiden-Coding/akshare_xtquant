@@ -10,7 +10,7 @@ akshare_api = Blueprint("akshare_api", url_prefix="/ak")
 
 
 @akshare_api.route("/method", methods=["POST"])
-async def pyMethod(request):
+async def py_method(request):
     method_args = request.json
     if method_args['args'] is None or len(method_args['args']) < 1:
         data = akshare.call_function_no_args(method_args['method'])
