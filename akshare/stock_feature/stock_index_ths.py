@@ -126,6 +126,9 @@ def stock_board_industry_index_ths(
     big_df = pd.DataFrame()
     current_year = int(end_date[:4])
     begin_year = int(start_date[:4])
+    add_today_data = False
+    if end_date and is_date_greater(end_date):
+        add_today_data = True
     for year in tqdm(range(begin_year, current_year + 1), leave=False):
         url = f"http://d.10jqka.com.cn/v4/line/zs_{symbol}/01/{year}.js"
         headers = {
@@ -203,7 +206,39 @@ def stock_board_industry_index_ths(
         "成交量",
         "成交额",
     ]
+    if add_today_data:
+        url = f"http://d.10jqka.com.cn/v4/line/zs_{symbol}/01/today.js"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36",
+            "Referer": "http://q.10jqka.com.cn",
+            "Host": "d.10jqka.com.cn",
+        }
+        r = requests.get(url, headers=headers)
+        data_text = r.text
+        try:
+            temp_data = demjson.decode(data_text[data_text.find("{"): -1])
+            if temp_data:
+                for key in temp_data.keys():
+                    value = temp_data[key]
+                    if value:
+                        new_row = {'日期': [datetime.strptime(value['1'], '%Y%m%d').date()], '开盘': [float(value['7'])],
+                                   '最高': [float(value['8'])], '最低': [float(value['9'])], '收盘': [float(value['11'])],
+                                   '成交量': [float(value['13'])], '成交额': [float(value['19'])]}
+                        td = pd.DataFrame(new_row)
+                        # 添加新行
+                        big_df = pd.concat(objs=[big_df, td], ignore_index=True)
+
+        except Exception as e:
+            # 处理异常的代码
+            print("发生异常:", e)
+
     return big_df
+
+
+def is_date_greater(target_date):
+    today = datetime.now().date()
+    target = datetime.strptime(target_date, '%Y%m%d').date()
+    return target > today
 
 
 if __name__ == "__main__":
